@@ -21,6 +21,10 @@ interface SceneState {
   setCameraTarget: (position: [number, number, number], lookAt: [number, number, number]) => void;
   setTransitioning: (val: boolean) => void;
   
+  // Dynamic camera tracking for moving objects
+  trackedPosition: [number, number, number] | null;
+  setTrackedPosition: (pos: [number, number, number] | null) => void;
+  
   // 3D setters
   setTiltAngleX: (angle: number) => void;
   setTiltAngleY: (angle: number) => void;
@@ -28,6 +32,12 @@ interface SceneState {
   setAddModalOpen: (val: boolean) => void;
   setPlanetAngle: (id: string, angle: number) => void;
   
+  constellationIntroComplete: boolean;
+  setConstellationIntroComplete: (val: boolean) => void;
+
+  hasPlayedIntro: boolean;
+  setHasPlayedIntro: (val: boolean) => void;
+
   resetScene: () => void;
 }
 
@@ -45,9 +55,13 @@ export const useSceneStore = create<SceneState>((set) => ({
   isAddModalOpen: false,
   
   planetAngles: {},
+  constellationIntroComplete: false,
+  hasPlayedIntro: false,
 
   setActiveStarId: (id) => set({ activeStarId: id }),
   setActivePlanetId: (id) => set({ activePlanetId: id }),
+  setConstellationIntroComplete: (val) => set({ constellationIntroComplete: val }),
+  setHasPlayedIntro: (val) => set({ hasPlayedIntro: val }),
   
   setCameraTarget: (position, lookAt) => set({ 
     cameraPosition: position, 
@@ -55,6 +69,9 @@ export const useSceneStore = create<SceneState>((set) => ({
   }),
   
   setTransitioning: (val) => set({ isTransitioning: val }),
+  
+  trackedPosition: null,
+  setTrackedPosition: (pos) => set({ trackedPosition: pos }),
   
   setTiltAngleX: (angle) => set({ tiltAngleX: angle }),
   setTiltAngleY: (angle) => set({ tiltAngleY: angle }),
@@ -75,7 +92,8 @@ export const useSceneStore = create<SceneState>((set) => ({
     tiltAngleY: -8,
     perspective3D: true,
     isAddModalOpen: false,
-    planetAngles: {}
+    planetAngles: {},
+    trackedPosition: null
   })
 }));
 

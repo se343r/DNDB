@@ -2,12 +2,12 @@
 
 import React, { useRef, Component, ErrorInfo, ReactNode } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSceneStore } from '@/store/sceneStore';
 import { ConstellationScene } from './ConstellationScene';
 import { SolarSystemScene } from './SolarSystemScene';
 import { PlanetDetailScene } from './PlanetDetailScene';
+import { CosmicBackground } from './CosmicBackground';
 
 // 1. Camera Controller component for smooth position & lookAt transitions
 const CameraController: React.FC = () => {
@@ -66,8 +66,35 @@ const CameraController: React.FC = () => {
   }, []);
 
   useFrame((state, delta) => {
-    const targetPosVec = new THREE.Vector3(...cameraPosition);
-    const targetLookAtVec = new THREE.Vector3(...cameraLookAt);
+    const trackedPos = useSceneStore.getState().trackedPosition;
+    let targetPosVec: THREE.Vector3;
+    let targetLookAtVec: THREE.Vector3;
+
+    if (trackedPos) {
+      const scale = 2.8;
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      
+      // To make the planet appear on the RIGHT side of the screen on desktop, 
+      // the camera must look at a point to the LEFT of the planet.
+      const lookAtOffsetX = isMobile ? 0 : -0.7;
+      // To make the planet appear UP on mobile, the camera must look BELOW the planet.
+      const lookAtOffsetY = isMobile ? -0.7 : 0;
+
+      targetLookAtVec = new THREE.Vector3(
+        trackedPos[0] + lookAtOffsetX,
+        trackedPos[1] + lookAtOffsetY,
+        trackedPos[2]
+      );
+      
+      targetPosVec = new THREE.Vector3(
+        trackedPos[0] + lookAtOffsetX,
+        trackedPos[1] + lookAtOffsetY,
+        trackedPos[2] + 3.0 / scale
+      );
+    } else {
+      targetPosVec = new THREE.Vector3(...cameraPosition);
+      targetLookAtVec = new THREE.Vector3(...cameraLookAt);
+    }
 
     if (transitionActive.current) {
       // First frame setup: capture initial positions
@@ -123,7 +150,14 @@ const CameraController: React.FC = () => {
         setTransitioning(false);
       }
     } else {
-      // Normal smooth camera lerp (using zoomFactor & scroll)
+      if (!useSceneStore.getState().activeStarId) {
+        // In Constellation scene, let MapControls handle camera
+        // Keep currentLookAt sync'ed with the panned camera position on the XY plane
+        currentLookAt.current.set(state.camera.position.x, state.camera.position.y, 0);
+        return;
+      }
+
+      // Normal smooth camera lerp (using zoomFactor & scroll) for Solar System / Planet View
       const dir = new THREE.Vector3().subVectors(targetPosVec, targetLookAtVec);
       
       // Scale direction vector by the custom scroll zoom factor
@@ -200,9 +234,7 @@ export const SpaceCanvas: React.FC = () => {
 
   // Determine which scene to render
   const renderScene = () => {
-    if (activePlanetId) {
-      return <PlanetDetailScene />;
-    } else if (activeStarId) {
+    if (activeStarId) {
       return <SolarSystemScene />;
     } else {
       return <ConstellationScene />;
@@ -210,26 +242,19 @@ export const SpaceCanvas: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 w-full h-full bg-black z-0">
+    <div className="fixed inset-0 w-full h-full bg-transparent z-0">
       <CanvasErrorBoundary>
         <Canvas
           camera={{ fov: 60, near: 0.1, far: 1000, position: [0, 0, 8] }}
-          gl={{ antialias: true, alpha: false }}
+          gl={{ antialias: true, alpha: true }}
+          onCreated={({ gl }) => gl.setClearAlpha(0)}
           className="w-full h-full"
         >
           {/* General Ambient Light */}
           <ambientLight intensity={0.25} />
 
-          {/* Galaxy background stars */}
-          <Stars 
-            radius={100} 
-            depth={50} 
-            count={2800} 
-            factor={4} 
-            saturation={0.5} 
-            fade 
-            speed={1.5} 
-          />
+          {/* Deep Space Background (Stars, Dust, Nebula) */}
+          <CosmicBackground />
 
           {/* Interpolated Camera Manager */}
           <CameraController />

@@ -9,6 +9,7 @@ import { generatePlanetCanvas } from '@/lib/planetTexture';
 import { useAudio } from '../providers/AudioProvider';
 import { Planet as PlanetType } from '@/lib/types';
 import { useSceneStore } from '@/store/sceneStore';
+import { PlanetHud } from '@/components/ui/PlanetHud';
 
 interface PlanetProps {
   planet: PlanetType;
@@ -27,6 +28,7 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
   const setCameraTarget = useSceneStore((state) => state.setCameraTarget);
   const setActivePlanetId = useSceneStore((state) => state.setActivePlanetId);
   const setTransitioning = useSceneStore((state) => state.setTransitioning);
+  const activePlanetId = useSceneStore((state) => state.activePlanetId);
 
   // Generate the procedural texture on mount (client-side only)
   useEffect(() => {
@@ -66,6 +68,13 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
       const z = Math.sin(angleRef.current) * planet.orbit_radius;
       groupRef.current.position.set(x, 0, z);
 
+      // Dynamically track position if this is the active planet
+      if (useSceneStore.getState().activePlanetId === planet.id) {
+        const worldPos = new THREE.Vector3();
+        groupRef.current.getWorldPosition(worldPos);
+        useSceneStore.getState().setTrackedPosition([worldPos.x, worldPos.y, worldPos.z]);
+      }
+
       // Save the current angle back into the Zustand store dynamically without triggering React re-renders
       useSceneStore.getState().planetAngles[planet.id] = angleRef.current;
     }
@@ -77,28 +86,17 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
     playClick();
 
     if (isOrbiting && groupRef.current) {
-      // Calculate planet absolute position in world space
-      const worldPos = new THREE.Vector3();
-      groupRef.current.getWorldPosition(worldPos);
-
-      // Start camera transition
+      // Start camera transition to track the planet
       setTransitioning(true);
-
-      // Shift lookAt target and camera position to the right by 0.66 to place planet on the left, and zoom to 1.1 units distance.
-      const targetX = worldPos.x + 0.66;
-      setCameraTarget(
-        [targetX, worldPos.y + 0.15, worldPos.z + 1.1],
-        [targetX, worldPos.y, worldPos.z]
-      );
-
-      // Transition page after camera animation completes (1200ms)
+      setActivePlanetId(planet.id);
+      
+      // No need to router.push, the HUD is rendered in-place within the current Star view.
       setTimeout(() => {
-        router.push(`/planet/${planet.id}`);
+        setTransitioning(false);
       }, 1200);
     } else {
-      // If already detailed, center zoom
+      // If already detailed, center zoom (fallback)
       setCameraTarget([0, 0, 1.8], [0, 0, 0]);
-      router.push(`/planet/${planet.id}`);
     }
   };
 
@@ -157,6 +155,11 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
         ref={groupRef} 
         position={isOrbiting ? [0, 0, 0] : [0, 0, 0]}
       >
+        {/* Floating HUD attached to this planet */}
+        {activePlanetId === planet.id && (
+          <PlanetHud planetId={planet.id} />
+        )}
+
         {/* Glow halo when hovered */}
         {hovered && (
           <mesh>
@@ -202,16 +205,18 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
         {isOrbiting && (
           <Html
             distanceFactor={5}
-            position={[0, actualSize + 0.18, 0]}
+            position={[0, actualSize + 0.35, 0]}
             center
-            style={{
-              transition: 'all 0.25s ease',
-              opacity: hovered ? 1 : 0,
-              transform: `scale(${hovered ? 1 : 0.85})`,
-              pointerEvents: 'none'
-            }}
+            style={{ pointerEvents: 'none' }}
           >
-            <div className="px-2.5 py-1 text-[11px] font-medium text-white/95 bg-black/85 border border-white/10 rounded-lg shadow-xl backdrop-blur-sm whitespace-nowrap">
+            <div 
+              style={{
+                transition: 'all 0.25s ease',
+                opacity: hovered ? 1 : 0,
+                transform: `scale(${hovered ? 1 : 0.85})`
+              }}
+              className="px-3.5 py-1.5 text-sm font-bold text-white bg-zinc-950/90 border border-zinc-700/50 rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.8)] backdrop-blur-md whitespace-nowrap text-center"
+            >
               {planet.name}
             </div>
           </Html>

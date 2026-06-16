@@ -20,6 +20,8 @@ export default function StarPage() {
   const setCameraTarget = useSceneStore((state) => state.setCameraTarget);
   const setActiveStarId = useSceneStore((state) => state.setActiveStarId);
   const setActivePlanetId = useSceneStore((state) => state.setActivePlanetId);
+  const activePlanetId = useSceneStore((state) => state.activePlanetId);
+  const setTrackedPosition = useSceneStore((state) => state.setTrackedPosition);
   const setAddModalOpen = useSceneStore((state) => state.setAddModalOpen);
   const isTransitioning = useSceneStore((state) => state.isTransitioning);
   const setTransitioning = useSceneStore((state) => state.setTransitioning);
@@ -30,10 +32,24 @@ export default function StarPage() {
     setTransitioning(true);
     setCameraTarget([0, 0, 8], [0, 0, 0]);
     setActiveStarId(null);
+    setActivePlanetId(null);
 
     setTimeout(() => {
       router.push('/');
     }, 1200);
+  };
+
+  const handleClosePlanet = () => {
+    playClick();
+    setTransitioning(true);
+    setActivePlanetId(null);
+    setTrackedPosition(null);
+    if (activeStar) {
+      const posX = activeStar.position_x * 5.5;
+      const posY = activeStar.position_y * 3.5;
+      setCameraTarget([posX, posY - 2.8, 6.8], [posX, posY, 0]);
+    }
+    setTimeout(() => setTransitioning(false), 1200);
   };
 
   // 3D Visual Coordinates from Zustand store
@@ -101,11 +117,11 @@ export default function StarPage() {
       <div className="flex items-start justify-between w-full relative z-20 pointer-events-auto">
         <div className="flex flex-wrap items-center gap-4">
           <button
-            onClick={handleGoBack}
+            onClick={activePlanetId ? handleClosePlanet : handleGoBack}
             className="px-3 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-xl border border-zinc-800 hover:border-zinc-700 font-semibold text-xs flex items-center space-x-1.5 transition cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Chòm sao Bắc Đẩu</span>
+            <span>{activePlanetId ? `Hệ mặt trời ${activeStar.name}` : 'Chòm sao Bắc Đẩu'}</span>
           </button>
 
           <div className="h-6 w-px bg-zinc-800 hidden sm:block" />

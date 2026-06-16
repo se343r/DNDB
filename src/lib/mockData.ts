@@ -14,16 +14,16 @@ export const MOCK_STARS: Star[] = [
     id: 'a2222222-2222-2222-2222-222222222222', // mizar
     name: 'Nghệ thuật',
     color: '#a855f7', // Purple
-    position_x: -0.468, // (26.6 - 50) / 50
-    position_y: 0.264,  // (50 - 36.8) / 50
+    position_x: -0.54,
+    position_y: 0.22,
     icon: '🎨'
   },
   {
     id: 'a3333333-3333-3333-3333-333333333333', // alcor (binary companion)
     name: 'Khoa học',
     color: '#22c55e', // Green
-    position_x: -0.430, // Separated slightly from Mizar
-    position_y: 0.340,   
+    position_x: -0.35,
+    position_y: 0.40,
     icon: '🔬'
   },
   {

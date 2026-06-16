@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { useRouter } from 'next/navigation';
@@ -11,11 +11,56 @@ import { useSceneStore } from '@/store/sceneStore';
 
 interface StarProps {
   star: StarType;
+  introPhase?: 0 | 1 | 2 | 3;
 }
 
-export const Star: React.FC<StarProps> = ({ star }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
+// Generate a soft radial glow texture with diffraction spikes
+function createStarTexture() {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  const center = size / 2;
+
+  // Outer soft glow
+  const grd = ctx.createRadialGradient(center, center, 0, center, center, center);
+  grd.addColorStop(0.0,  'rgba(255, 255, 255, 1.0)');
+  grd.addColorStop(0.08, 'rgba(255, 255, 255, 0.95)');
+  grd.addColorStop(0.2,  'rgba(220, 230, 255, 0.6)');
+  grd.addColorStop(0.45, 'rgba(180, 200, 255, 0.2)');
+  grd.addColorStop(0.7,  'rgba(140, 160, 255, 0.05)');
+  grd.addColorStop(1.0,  'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, size, size);
+
+  // Cross diffraction spikes (4-pointed star)
+  ctx.globalCompositeOperation = 'lighter';
+  const drawSpike = (angle: number, length: number, width: number) => {
+    ctx.save();
+    ctx.translate(center, center);
+    ctx.rotate(angle);
+    const sg = ctx.createLinearGradient(0, -length, 0, length);
+    sg.addColorStop(0,    'rgba(255,255,255,0)');
+    sg.addColorStop(0.45, 'rgba(255,255,255,0.7)');
+    sg.addColorStop(0.5,  'rgba(255,255,255,1.0)');
+    sg.addColorStop(0.55, 'rgba(255,255,255,0.7)');
+    sg.addColorStop(1,    'rgba(255,255,255,0)');
+    ctx.fillStyle = sg;
+    ctx.fillRect(-width / 2, -length, width, length * 2);
+    ctx.restore();
+  };
+  drawSpike(0,            center * 0.95, 3);
+  drawSpike(Math.PI / 2,  center * 0.95, 3);
+  drawSpike(Math.PI / 4,  center * 0.55, 1.5);
+  drawSpike(-Math.PI / 4, center * 0.55, 1.5);
+
+  return new THREE.CanvasTexture(canvas);
+}
+
+export const Star: React.FC<StarProps> = ({ star, introPhase = 3 }) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const spriteRef = useRef<any>(null);
   const [hovered, setHovered] = useState(false);
   const router = useRouter();
   const { playHover, playClick } = useAudio();
@@ -23,54 +68,48 @@ export const Star: React.FC<StarProps> = ({ star }) => {
   const setActiveStarId = useSceneStore((state) => state.setActiveStarId);
   const setTransitioning = useSceneStore((state) => state.setTransitioning);
 
-  // Position mapping from normalized DB coordinates to 3D scene coordinates
   const posX = star.position_x * 5.5;
   const posY = star.position_y * 3.5;
   const posZ = 0;
 
-  // Pulsing animation & rotation
-  const pulseSeed = React.useMemo(() => Math.random() * 100, []);
+  const pulseSeed = useMemo(() => Math.random() * 100, []);
+  const isAlcor = star.id === 'a3333333-3333-3333-3333-333333333333';
+  const baseSize = isAlcor ? 0.45 : 0.8;
 
-  // Create uniforms for the glow shader
-  const uniforms = React.useMemo(() => {
-    return {
-      color: { value: new THREE.Color(star.color) },
-      glowPower: { value: 2.8 },
-      opacity: { value: hovered ? 0.85 : 0.45 }
-    };
-  }, [star.color]);
-
-  // Update uniforms when hovered state changes
-  React.useEffect(() => {
-    if (uniforms) {
-      uniforms.opacity.value = hovered ? 0.85 : 0.45;
-    }
-  }, [hovered, uniforms]);
+  const starTexture = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    return createStarTexture();
+  }, []);
 
   useFrame((state) => {
     const time = state.clock.getElapsedTime();
-    const pulseFactor = 1 + Math.sin(time * 2.5 + pulseSeed) * 0.08;
-    
-    const scale = hovered ? 1.5 * pulseFactor : 1.0 * pulseFactor;
+    if (spriteRef.current) {
+      // Phase brightness:
+      // 0 = very dim (barely visible)
+      // 1 = dim (slightly brighter while lines draw)
+      // 2 = BURST (max size + max brightness)
+      // 3 = normal twinkling
+      const isBurst  = introPhase === 2;
+      const isNormal = introPhase === 3;
 
-    if (meshRef.current) {
-      meshRef.current.scale.set(scale, scale, scale);
-      meshRef.current.rotation.y = time * 0.2;
-    }
+      const twinkle = isNormal
+        ? 1 + Math.sin(time * 2.8 + pulseSeed) * 0.1 + Math.cos(time * 11.0 + pulseSeed * 1.3) * 0.05
+        : 1.0; // static, no shimmer during dim or burst
 
-    if (glowRef.current) {
-      // Glow shell pulses slightly out of sync for a gaseous effect
-      const glowScale = scale * 1.6 + Math.cos(time * 4.0) * 0.05;
-      glowRef.current.scale.set(glowScale, glowScale, glowScale);
-      glowRef.current.rotation.y = -time * 0.1;
+      const dimMult   = 0; // hidden during phase 0 and 1, only burst/normal show stars
+      const burstMult = isBurst ? 2.6 : 1.0;
+      const hoverMult = hovered ? 1.9 : 1.0;
+      const s = baseSize * twinkle * (isNormal ? hoverMult : burstMult);
+      spriteRef.current.scale.set(s, s, 1);
 
-      // Animate shader material opacity dynamically to make the star twinkle like in the night sky
-      const material = glowRef.current.material as THREE.ShaderMaterial;
-      if (material && material.uniforms && material.uniforms.opacity) {
-        const baseOpacity = hovered ? 0.9 : 0.45;
-        // Twinkling effect: combination of a slow wave and a high-frequency scintillation wave
-        const twinkle = Math.sin(time * 5.0 + pulseSeed) * 0.05 + Math.cos(time * 14.0 + pulseSeed * 1.5) * 0.03;
-        material.uniforms.opacity.value = baseOpacity + twinkle;
+      if (spriteRef.current.material) {
+        spriteRef.current.material.rotation = isBurst ? 0 : (time * 0.15 + pulseSeed);
+        const baseOpacity = isNormal
+          ? (hovered ? 1.0 : 0.92 + Math.sin(time * 3.0 + pulseSeed) * 0.05)
+          : isBurst
+            ? 1.0
+            : dimMult;
+        spriteRef.current.material.opacity = baseOpacity;
       }
     }
   });
@@ -79,123 +118,72 @@ export const Star: React.FC<StarProps> = ({ star }) => {
     e.stopPropagation();
     if (useSceneStore.getState().isTransitioning) return;
     playClick();
-    
-    // Start camera transition
     setTransitioning(true);
-    
-    // Zoom camera into the star system (slightly pulled back and tilted to see all orbits)
     setCameraTarget([posX, posY - 2.8, 6.8], [posX, posY, 0]);
     setActiveStarId(star.id);
-
-    // Transition page after transition animation finishes (1200ms)
-    setTimeout(() => {
-      router.push(`/star/${star.id}`);
-    }, 1200);
+    setTimeout(() => { router.push(`/star/${star.id}`); }, 1200);
   };
 
   const handlePointerOver = (e: any) => {
     e.stopPropagation();
     setHovered(true);
     playHover();
-    if (typeof window !== 'undefined') {
-      document.body.style.cursor = 'pointer';
-    }
+    if (typeof window !== 'undefined') document.body.style.cursor = 'pointer';
     router.prefetch(`/star/${star.id}`);
   };
 
   const handlePointerOut = () => {
     setHovered(false);
-    if (typeof window !== 'undefined') {
-      document.body.style.cursor = 'default';
-    }
+    if (typeof window !== 'undefined') document.body.style.cursor = 'default';
   };
 
-  const isAlcor = star.id === 'a3333333-3333-3333-3333-333333333333';
-  const glowRadius = isAlcor ? 0.09 : 0.16;
-  const coreRadius = isAlcor ? 0.045 : 0.08;
-  const coronaRadius = isAlcor ? 0.043 : 0.078;
-
   return (
-    <group position={[posX, posY, posZ]}>
-      {/* Point Light for casting colored glow onto neighboring objects */}
-      <pointLight 
-        color={star.color} 
-        intensity={hovered ? (isAlcor ? 1.5 : 3.0) : (isAlcor ? 0.75 : 1.5)} 
-        distance={isAlcor ? 4 : 8} 
-        decay={2} 
+    <group ref={groupRef} position={[posX, posY, posZ]}>
+      {/* Soft white ambient light */}
+      <pointLight
+        color="#dde8ff"
+        intensity={hovered ? (isAlcor ? 1.2 : 2.4) : (isAlcor ? 0.4 : 0.8)}
+        distance={isAlcor ? 3 : 5}
+        decay={2}
       />
 
-      {/* Outer Glow shell */}
-      <mesh ref={glowRef}>
-        <sphereGeometry args={[glowRadius, 32, 32]} />
-        <shaderMaterial
-          vertexShader={`
-            precision mediump float;
-            varying vec3 vNormal;
-            void main() {
-              vNormal = normalize(normalMatrix * normal);
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-          `}
-          fragmentShader={`
-            precision mediump float;
-            varying vec3 vNormal;
-            uniform vec3 color;
-            uniform float glowPower;
-            uniform float opacity;
-            void main() {
-              float intensity = pow(max(0.0, dot(vNormal, vec3(0.0, 0.0, 1.0))), glowPower);
-              gl_FragColor = vec4(color, intensity * opacity);
-            }
-          `}
-          uniforms={uniforms}
-          transparent
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-        />
-      </mesh>
-
-      {/* Core Star body */}
-      <mesh
-        ref={meshRef}
-        onClick={handleClick}
-        onPointerOver={handlePointerOver}
-        onPointerOut={handlePointerOut}
-      >
-        <sphereGeometry args={[coreRadius, 32, 32]} />
-        <meshBasicMaterial color="#ffffff" />
-        
-        {/* Colorful corona core */}
-        <mesh>
-          <sphereGeometry args={[coronaRadius, 16, 16]} />
-          <meshBasicMaterial 
-            color={star.color} 
-            transparent 
-            opacity={0.8} 
+      {/* Star Sprite - sparkle texture */}
+      {starTexture && (
+        <sprite
+          ref={spriteRef}
+          onClick={handleClick}
+          onPointerOver={handlePointerOver}
+          onPointerOut={handlePointerOut}
+        >
+          <spriteMaterial
+            map={starTexture}
+            color="#ffffff"
+            transparent
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            sizeAttenuation
           />
-        </mesh>
-      </mesh>
+        </sprite>
+      )}
 
       {/* Label Tooltip */}
       <Html
         distanceFactor={6}
-        position={[0, 0.25, 0]}
+        position={[0, 0.45, 0]}
         center
-        style={{
-          transition: 'all 0.3s ease',
-          opacity: hovered ? 1 : 0,
-          transform: `scale(${hovered ? 1 : 0.8})`,
-          pointerEvents: 'none'
-        }}
+        style={{ pointerEvents: 'none' }}
       >
-        <div 
-          className="px-3 py-1.5 rounded-full border text-xs font-semibold whitespace-nowrap shadow-2xl flex items-center gap-1.5 backdrop-blur-md bg-black/80 text-white"
-          style={{ 
-            borderColor: `${star.color}44`,
-            boxShadow: `0 0 15px ${star.color}22`
+        <div
+          className="px-4 py-2 rounded-2xl border text-sm font-bold whitespace-nowrap flex items-center gap-2 backdrop-blur-md bg-zinc-950/90 text-white"
+          style={{
+            transition: 'all 0.3s ease',
+            opacity: hovered ? 1 : 0,
+            transform: `scale(${hovered ? 1 : 0.8})`,
+            borderColor: 'rgba(255,255,255,0.2)',
+            boxShadow: '0 0 20px rgba(200,210,255,0.15)'
           }}
         >
-          {star.icon && <span className="text-sm">{star.icon}</span>}
+          {star.icon && <span className="text-base">{star.icon}</span>}
           <span>{star.name}</span>
         </div>
       </Html>

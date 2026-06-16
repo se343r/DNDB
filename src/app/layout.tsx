@@ -5,6 +5,7 @@ import { AudioProvider } from "@/components/providers/AudioProvider";
 import { SpaceCanvas } from "@/components/scene/SpaceCanvas";
 import { Header } from "@/components/ui/Header";
 import { AddPlanetModal } from "@/components/ui/AddPlanetModal";
+import { NebulaBackground } from "@/components/ui/NebulaBackground";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -27,6 +28,9 @@ export default function RootLayout({
     >
       <body className="h-full bg-black text-white relative flex flex-col">
         <AudioProvider>
+          {/* Nebula CSS background — hidden during intro, fades in after */}
+          <NebulaBackground />
+
           {/* Persistent WebGL Background */}
           <SpaceCanvas />
 

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whispers Between Stars - Intro Effect</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            font-family: sans-serif;
+            overflow: hidden;
+        }
+
+        .whisper-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle at center, #1a0f35 0%, #080414 100%);
+        }
+
+        /* 1. HIỆU ỨNG BÓNG NHÂN VẬT NỀN HIỆN LÊN */
+        .bg-silhouette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle at 50% 50%, rgba(100, 70, 200, 0.2) 0%, transparent 60%);
+            opacity: 0;
+            transform: scale(1.1);
+            animation: bgFadeIn 3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        /* 2. HIỆU ỨNG SÓNG ÂM (RIPPLES) TỪ TRUNG TÂM */
+        .ripple {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            border: 2px solid rgba(220, 184, 255, 0.8);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .ripple.active {
+            animation: rippleEffect 2s ease-out forwards;
+        }
+
+        .ripple.delay {
+            animation-delay: 0.5s;
+        }
+
+        /* SVG CHỨA CÁC ĐƯỜNG KẺ */
+        .constellation-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .line-path {
+            stroke: #dcb8ff;
+            stroke-width: 0.2;
+            fill: none;
+            filter: drop-shadow(0 0 2px rgba(220, 184, 255, 0.8));
+            /* Dash array & offset sẽ được JS gán tự động để tạo hiệu ứng vẽ */
+            transition: stroke-dashoffset 1.5s ease-in-out;
+        }
+
+        /* NODES (CÁC NHÂN VẬT) */
+        #nodes-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+        }
+
+        .star-node {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* Căn giữa tâm node */
+            margin-left: -40px;
+            margin-top: -40px;
+            /* Trạng thái ban đầu: Ẩn và thu nhỏ */
+            opacity: 0;
+            transform: scale(0);
+        }
+
+        .star-node.large {
+            margin-left: -65px;
+            margin-top: -65px;
+        }
+
+        /* Sửa bù tâm cho node giữa */
+
+        /* Animation khi các node nảy lên (pop in) */
+        .star-node.pop-in {
+            animation: nodePopIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        /* Style bong bóng (giữ nguyên như cũ) */
+        .bubble-ring {
+            border-radius: 50%;
+            border: 1px solid rgba(220, 184, 255, 0.2);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 20px rgba(164, 130, 255, 0.3), inset 0 0 15px rgba(164, 130, 255, 0.2);
+            background: rgba(26, 15, 53, 0.6);
+            backdrop-filter: blur(4px);
+        }
+
+        .bubble-ring::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: #dcb8ff;
+            border-right-color: rgba(220, 184, 255, 0.3);
+            animation: spin 5s linear infinite;
+        }
+
+        .bubble-ring.normal {
+            width: 80px;
+            height: 80px;
+        }
+
+        .bubble-ring.normal .avatar {
+            width: 65px;
+            height: 65px;
+        }
+
+        .bubble-ring.large {
+            width: 130px;
+            height: 130px;
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.3), inset 0 0 20px rgba(255, 215, 0, 0.2);
+        }
+
+        .bubble-ring.large::before {
+            border-top-color: #ffd700;
+            border-right-color: rgba(255, 215, 0, 0.3);
+            animation: spin 7s linear infinite reverse;
+        }
+
+        .avatar {
+            border-radius: 50%;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .node-info {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #fff;
+            text-shadow: 0 0 5px #000;
+        }
+
+        .node-name {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .node-progress {
+            font-size: 12px;
+            color: #dcb8ff;
+            margin-top: 2px;
+        }
+
+        /* ================= KEYFRAMES CHO INTRO ================= */
+        @keyframes bgFadeIn {
+            0% {
+                opacity: 0;
+                transform: scale(1.1);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes rippleEffect {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.8;
+                border-width: 4px;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(5);
+                opacity: 0;
+                border-width: 0px;
+            }
+        }
+
+        @keyframes nodePopIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="whisper-container">
+        <div class="bg-silhouette"></div>
+
+        <div class="ripple" id="ripple1"></div>
+        <div class="ripple delay" id="ripple2"></div>
+
+        <svg class="constellation-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <path id="line-center-sanhua" class="line-path" d="M 50 50 Q 40 50 30 65" />
+            <path id="line-center-jianxin" class="line-path" d="M 50 50 Q 60 62 70 62" />
+
+            <path id="line-sanhua-yinlin" class="line-path" d="M 30 65 Q 22 65 15 55" />
+            <path id="line-jianxin-verina" class="line-path" d="M 70 62 Q 78 50 85 50" />
+        </svg>
+
+        <div id="nodes-container"></div>
+    </div>
+
+    <script>
+        // Cấu hình thứ tự xuất hiện (delay tính bằng mili-giây)
+        const nodesData = [
+            // Center (Tier 0)
+            { id: 'rover', name: '', progress: '', x: 50, y: 50, size: 'large', delay: 800, img: 'https://via.placeholder.com/150/000000/FFFFFF?text=Center' },
+            // Nhánh cấp 1 (Tier 1)
+            { id: 'sanhua', name: 'Sanhua', progress: '2/6', x: 30, y: 65, size: 'normal', delay: 1800, img: 'https://via.placeholder.com/100/0000FF/FFFFFF?text=Sanhua' },
+            { id: 'jianxin', name: 'Jianxin', progress: '4/6', x: 70, y: 62, size: 'normal', delay: 1800, img: 'https://via.placeholder.com/100/008000/FFFFFF?text=Jianxin' },
+            // Nhánh cấp 2 (Tier 2)
+            { id: 'yinlin', name: 'Yinlin', progress: '3/5', x: 15, y: 55, size: 'normal', delay: 2800, img: 'https://via.placeholder.com/100/800080/FFFFFF?text=Yinlin' },
+            { id: 'verina', name: 'Verina', progress: '5/5', x: 85, y: 50, size: 'normal', delay: 2800, img: 'https://via.placeholder.com/100/FFC0CB/FFFFFF?text=Verina' }
+        ];
+
+        const container = document.getElementById('nodes-container');
+
+        // BƯỚC 1: RENDER CÁC NODES (nhưng ẩn đi)
+        nodesData.forEach(node => {
+            const nodeEl = document.createElement('div');
+            nodeEl.className = `star-node ${node.size}`;
+            nodeEl.style.left = node.x + '%';
+            nodeEl.style.top = node.y + '%';
+
+            let infoHTML = node.name ? `
+                <div class="node-info">
+                    <span class="node-name">${node.name}</span>
+                    <span class="node-progress">${node.progress}</span>
+                </div>` : '';
+
+            nodeEl.innerHTML = `
+                <div class="bubble-ring ${node.size}">
+                    <img src="${node.img}" alt="${node.name}" class="avatar" />
+                </div>
+                ${infoHTML}
+            `;
+            container.appendChild(nodeEl);
+
+            // Bật hiệu ứng Pop-in theo thời gian delay
+            setTimeout(() => {
+                nodeEl.classList.add('pop-in');
+            }, node.delay);
+        });
+
+        // BƯỚC 2: SETUP HIỆU ỨNG VẼ ĐƯỜNG KẺ (LINE DRAWING ANIMATION)
+        const paths = document.querySelectorAll('.line-path');
+        paths.forEach(path => {
+            // Lấy độ dài thật của path SVG
+            const length = path.getTotalLength();
+            // Đặt dasharray và offset bằng độ dài để giấu đường kẻ đi
+            path.style.strokeDasharray = length;
+            path.style.strokeDashoffset = length;
+        });
+
+        // BƯỚC 3: TRIGGER THE TIMELINE (ĐIỀU PHỐI THỜI GIAN)
+        setTimeout(() => {
+            // 0.8s: Cục trung tâm hiện lên -> Bắn sóng âm
+            document.getElementById('ripple1').classList.add('active');
+            document.getElementById('ripple2').classList.add('active');
+
+            // 1.0s: Bắt đầu vẽ đường từ tâm ra Tier 1
+            setTimeout(() => {
+                document.getElementById('line-center-sanhua').style.strokeDashoffset = 0;
+                document.getElementById('line-center-jianxin').style.strokeDashoffset = 0;
+            }, 200);
+
+            // 2.0s: Bắt đầu vẽ đường từ Tier 1 ra Tier 2
+            setTimeout(() => {
+                document.getElementById('line-sanhua-yinlin').style.strokeDashoffset = 0;
+                document.getElementById('line-jianxin-verina').style.strokeDashoffset = 0;
+            }, 1200);
+
+        }, 800);
+
+    </script>
+</body>
+
+</html>

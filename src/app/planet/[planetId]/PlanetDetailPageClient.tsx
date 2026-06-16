@@ -100,8 +100,9 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
         .add(new THREE.Vector3(starX, starY, 0));
 
       // Calculate camera zoomed-in position in world space
-      const targetX = worldPos.x + 0.66;
-      const zoomedInPos: [number, number, number] = [targetX, worldPos.y + 0.15, worldPos.z + 1.1];
+      const scale = 2.8;
+      const targetX = worldPos.x + 1.3 / scale;
+      const zoomedInPos: [number, number, number] = [targetX, worldPos.y, worldPos.z + 3.0 / scale];
       const zoomedInLookAt: [number, number, number] = [targetX, worldPos.y, worldPos.z];
 
       // 1. Snap camera instantly to the planet's orbit position in SolarSystemScene
