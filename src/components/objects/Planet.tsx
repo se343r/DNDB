@@ -25,9 +25,7 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
   const router = useRouter();
   const { playHover, playClick } = useAudio();
 
-  const setCameraTarget = useSceneStore((state) => state.setCameraTarget);
-  const setActivePlanetId = useSceneStore((state) => state.setActivePlanetId);
-  const setTransitioning = useSceneStore((state) => state.setTransitioning);
+  const triggerTransition = useSceneStore((state) => state.triggerTransition);
   const activePlanetId = useSceneStore((state) => state.activePlanetId);
 
   // Generate the procedural texture on mount (client-side only)
@@ -86,17 +84,29 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
     playClick();
 
     if (isOrbiting && groupRef.current) {
-      // Start camera transition to track the planet
-      setTransitioning(true);
-      setActivePlanetId(planet.id);
-      
-      // No need to router.push, the HUD is rendered in-place within the current Star view.
+      // Get current world position of the planet
+      const worldPos = new THREE.Vector3();
+      groupRef.current.getWorldPosition(worldPos);
+
+      // Offset camera to show planet on the right side (camera looks left of planet)
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      const lookAtOffsetX = isMobile ? 0 : -0.7;
+      const lookAtOffsetY = isMobile ? -0.7 : 0;
+
+      // Trigger cinematic zoom-in camera transition (1200ms)
+      triggerTransition(
+        [worldPos.x + lookAtOffsetX, worldPos.y + lookAtOffsetY, worldPos.z + 3.0 / 2.8],
+        [worldPos.x + lookAtOffsetX, worldPos.y + lookAtOffsetY, worldPos.z],
+        1.2
+      );
+
+      // Navigate to planet detail page after the camera animation finishes
       setTimeout(() => {
-        setTransitioning(false);
+        router.push(`/planet/${planet.id}`);
       }, 1200);
     } else {
-      // If already detailed, center zoom (fallback)
-      setCameraTarget([0, 0, 1.8], [0, 0, 0]);
+      // Already in detail view — just navigate directly
+      router.push(`/planet/${planet.id}`);
     }
   };
 

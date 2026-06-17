@@ -27,6 +27,7 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
   const setActivePlanetId = useSceneStore((state) => state.setActivePlanetId);
   const isTransitioning = useSceneStore((state) => state.isTransitioning);
   const setTransitioning = useSceneStore((state) => state.setTransitioning);
+  const triggerTransition = useSceneStore((state) => state.triggerTransition);
 
   // Edit states
   const [isEditing, setIsEditing] = useState(false);
@@ -52,8 +53,7 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
       return;
     }
 
-    // Set camera target looking at origin to place the offset planet group [-1.3, 0, 0] on the left
-    setCameraTarget([0, 0, 3.0], [0, 0, 0]);
+    // Set active IDs so SpaceCanvas renders PlanetDetailScene with the correct planet
     setActiveStarId(planet.star_id);
     setActivePlanetId(planet.id);
 
@@ -64,9 +64,10 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
     setEditSpeed(planet.orbit_speed);
     setEditSize(planet.planet_size);
     setEditSeed(planet.planet_seed);
-    
+
+    // Clear transitioning flag (camera has already arrived)
     setTransitioning(false);
-  }, [planet, loading, setCameraTarget, setActiveStarId, setActivePlanetId, setTransitioning, router]);
+  }, [planet, loading, setActiveStarId, setActivePlanetId, setTransitioning, router]);
 
   // Prefetch back navigation routes
   useEffect(() => {
@@ -87,7 +88,7 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
       const x = Math.cos(angle) * planet.orbit_radius;
       const z = Math.sin(angle) * planet.orbit_radius;
 
-      // Rotate and translate relative orbit position to get world position
+      // Rotate local orbit position into world space
       const perspective3D = useSceneStore.getState().perspective3D;
       const tiltAngleX = useSceneStore.getState().tiltAngleX;
       const tiltAngleY = useSceneStore.getState().tiltAngleY;
@@ -99,20 +100,22 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
         .applyEuler(new THREE.Euler(rotX, 0, rotY))
         .add(new THREE.Vector3(starX, starY, 0));
 
-      // Calculate camera zoomed-in position in world space
-      const scale = 2.8;
-      const targetX = worldPos.x + 1.3 / scale;
-      const zoomedInPos: [number, number, number] = [targetX, worldPos.y, worldPos.z + 3.0 / scale];
-      const zoomedInLookAt: [number, number, number] = [targetX, worldPos.y, worldPos.z];
+      // Match the EXACT same offsets used during zoom-in (in Planet.tsx handleClick)
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      const lookAtOffsetX = isMobile ? 0 : -0.7;
+      const lookAtOffsetY = isMobile ? -0.7 : 0;
+      const zoomedInPos: [number, number, number] = [worldPos.x + lookAtOffsetX, worldPos.y + lookAtOffsetY, worldPos.z + 3.0 / 2.8];
+      const zoomedInLookAt: [number, number, number] = [worldPos.x + lookAtOffsetX, worldPos.y + lookAtOffsetY, worldPos.z];
 
-      // 1. Snap camera instantly to the planet's orbit position in SolarSystemScene
-      setCameraTarget(zoomedInPos, zoomedInLookAt);
+      // 1. Clear planet detail → switch back to SolarSystemScene
       setActivePlanetId(null);
 
-      // 2. Start transition to full solar system target in the next frame
+      // 2. Snap camera to the planet's zoomed-in position (no animation)
+      setCameraTarget(zoomedInPos, zoomedInLookAt);
+
+      // 3. In next frame: trigger cinematic zoom-out to star system
       requestAnimationFrame(() => {
-        setTransitioning(true);
-        setCameraTarget([starX, starY - 2.8, 6.8], [starX, starY, 0]);
+        triggerTransition([starX, starY - 2.8, 6.8], [starX, starY, 0], 1.2);
 
         setTimeout(() => {
           router.push(`/star/${planet.star_id}`);

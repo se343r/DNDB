@@ -25,31 +25,30 @@ export default function StarPage() {
   const setAddModalOpen = useSceneStore((state) => state.setAddModalOpen);
   const isTransitioning = useSceneStore((state) => state.isTransitioning);
   const setTransitioning = useSceneStore((state) => state.setTransitioning);
+  const triggerTransition = useSceneStore((state) => state.triggerTransition);
   const { playClick } = useAudio();
 
   const handleGoBack = () => {
     playClick();
-    setTransitioning(true);
-    setCameraTarget([0, 0, 8], [0, 0, 0]);
+    triggerTransition([0, 0, 8], [0, 0, 0]);
     setActiveStarId(null);
     setActivePlanetId(null);
 
     setTimeout(() => {
-      router.push('/');
-    }, 1200);
+      router.push('/catalog');
+    }, 1000);
   };
 
   const handleClosePlanet = () => {
     playClick();
-    setTransitioning(true);
     setActivePlanetId(null);
     setTrackedPosition(null);
     if (activeStar) {
       const posX = activeStar.position_x * 5.5;
       const posY = activeStar.position_y * 3.5;
-      setCameraTarget([posX, posY - 2.8, 6.8], [posX, posY, 0]);
+      triggerTransition([posX, posY - 2.8, 6.8], [posX, posY, 0]);
     }
-    setTimeout(() => setTransitioning(false), 1200);
+    setTimeout(() => setTransitioning(false), 1000);
   };
 
   // 3D Visual Coordinates from Zustand store
@@ -78,9 +77,18 @@ export default function StarPage() {
     // Set camera target tilted on the Y-axis with a wider field of view (Z=6.8) to see all orbits
     setCameraTarget([posX, posY - 2.8, 6.8], [posX, posY, 0]);
     setActiveStarId(activeStar.id);
-    setActivePlanetId(null);
+    
+    // Preserve active planet if it belongs to this star system
+    // Wait until planets have loaded before potentially clearing the activePlanetId
+    if (!planetsLoading) {
+      if (activePlanetId && planets && planets.some((p) => p.id === activePlanetId)) {
+        setTrackedPosition(null);
+      } else {
+        setActivePlanetId(null);
+      }
+    }
     setTransitioning(false);
-  }, [activeStar, starsLoading, setCameraTarget, setActiveStarId, setActivePlanetId, setTransitioning, router]);
+  }, [activeStar, starsLoading, planetsLoading, setCameraTarget, setActiveStarId, setActivePlanetId, setTransitioning, router, activePlanetId, planets, setTrackedPosition]);
 
   // Prefetch planet detail routes and home page for quick navigation
   useEffect(() => {
@@ -141,14 +149,6 @@ export default function StarPage() {
           </div>
         </div>
 
-        {/* Quick Summon Button */}
-        <button
-          onClick={() => setAddModalOpen(true)}
-          className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-white rounded-xl border border-indigo-500/30 text-xs font-bold flex items-center space-x-1 transition cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Thêm nhân vật vào {activeStar.name}</span>
-        </button>
       </div>
 
       {/* Spacer */}

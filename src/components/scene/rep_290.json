@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Moved black core sphere to the transparent render queue by setting transparent=true, allowing it to render after the accretion disks (renderOrder=4 vs 1,2,3) and correctly overwrite the disk's overlapping pixels.\"",
+  "EndLine": "197",
+  "Instruction": "\"Add transparent={true} and opacity={1.0} to the black core sphere's meshBasicMaterial.\"",
+  "ReplacementContent": "\"      {/* \u2550\u2550 5. Black core sphere (writes depth, renderOrder 4) \u2550\u2550 */}\\n      <mesh renderOrder={4}>\\n        <sphereGeometry args={[0.65, 64, 64]} />\\n        <meshBasicMaterial color=\\\"#000000\\\" transparent={true} opacity={1.0} depthTest={true} depthWrite={true} />\\n      </mesh>\"",
+  "StartLine": "191",
+  "TargetContent": "\"      {/* \u2550\u2550 5. Black core sphere (writes depth, renderOrder 4) \u2550\u2550 */}\\n      <mesh renderOrder={4}>\\n        <sphereGeometry args={[0.65, 64, 64]} />\\n        <meshBasicMaterial color=\\\"#000000\\\" depthTest={true} depthWrite={true} />\\n      </mesh>\"",
+  "TargetFile": "\"/home/deist/Downloads/Work/dnbd-next/src/components/scene/HomeScene.tsx\"",
+  "toolAction": "\"Modifying black core sphere material\"",
+  "toolSummary": "\"Edit HomeScene.tsx\""
+}

@@ -67,6 +67,7 @@ export const Star: React.FC<StarProps> = ({ star, introPhase = 3 }) => {
   const setCameraTarget = useSceneStore((state) => state.setCameraTarget);
   const setActiveStarId = useSceneStore((state) => state.setActiveStarId);
   const setTransitioning = useSceneStore((state) => state.setTransitioning);
+  const triggerTransition = useSceneStore((state) => state.triggerTransition);
 
   const posX = star.position_x * 5.5;
   const posY = star.position_y * 3.5;
@@ -118,10 +119,9 @@ export const Star: React.FC<StarProps> = ({ star, introPhase = 3 }) => {
     e.stopPropagation();
     if (useSceneStore.getState().isTransitioning) return;
     playClick();
-    setTransitioning(true);
-    setCameraTarget([posX, posY - 2.8, 6.8], [posX, posY, 0]);
+    triggerTransition([posX, posY - 2.8, 6.8], [posX, posY, 0]);
     setActiveStarId(star.id);
-    setTimeout(() => { router.push(`/star/${star.id}`); }, 1200);
+    setTimeout(() => { router.push(`/star/${star.id}`); }, 1000);
   };
 
   const handlePointerOver = (e: any) => {

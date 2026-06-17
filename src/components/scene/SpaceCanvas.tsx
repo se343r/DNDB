@@ -1,13 +1,15 @@
 'use client';
 
 import React, { useRef, Component, ErrorInfo, ReactNode } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useSceneStore } from '@/store/sceneStore';
 import { ConstellationScene } from './ConstellationScene';
 import { SolarSystemScene } from './SolarSystemScene';
 import { PlanetDetailScene } from './PlanetDetailScene';
 import { CosmicBackground } from './CosmicBackground';
+import { HomeScene } from './HomeScene';
+
 
 // 1. Camera Controller component for smooth position & lookAt transitions
 const CameraController: React.FC = () => {
@@ -15,6 +17,7 @@ const CameraController: React.FC = () => {
   const cameraLookAt = useSceneStore((state) => state.cameraLookAt);
   const isTransitioning = useSceneStore((state) => state.isTransitioning);
   const setTransitioning = useSceneStore((state) => state.setTransitioning);
+  const transitionDuration = useSceneStore((state) => state.transitionDuration); // seconds
 
   const currentLookAt = useRef(new THREE.Vector3(0, 0, 0));
   const targetPos = useRef(new THREE.Vector3(0, 0, 8));
@@ -26,7 +29,6 @@ const CameraController: React.FC = () => {
   const transitionStartPos = useRef(new THREE.Vector3());
   const transitionStartLookAt = useRef(new THREE.Vector3());
   const transitionTime = useRef(0);
-  const transitionDuration = 1.2; // seconds
   const transitionActive = useRef(false);
   const shouldSnap = useRef(true); // Snap on initial load
 
@@ -35,16 +37,53 @@ const CameraController: React.FC = () => {
     zoomFactor.current = 1.0;
   }, [cameraPosition, cameraLookAt]);
 
-  // Monitor target changes to initiate cinematic transition
+  const { camera } = useThree();
+
+  // Monitor target changes to initiate cinematic transition or snap
   React.useEffect(() => {
     if (isTransitioning) {
       transitionActive.current = true;
       transitionTime.current = 0;
     } else {
       transitionActive.current = false;
+      transitionTime.current = 0;
       shouldSnap.current = true;
+
+      // Snap camera synchronously to target coordinate system
+      const trackedPos = useSceneStore.getState().trackedPosition;
+      let targetPosVec: THREE.Vector3;
+      let targetLookAtVec: THREE.Vector3;
+
+      if (trackedPos) {
+        const scale = 2.8;
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+        const lookAtOffsetX = isMobile ? 0 : -0.7;
+        const lookAtOffsetY = isMobile ? -0.7 : 0;
+        targetLookAtVec = new THREE.Vector3(
+          trackedPos[0] + lookAtOffsetX,
+          trackedPos[1] + lookAtOffsetY,
+          trackedPos[2]
+        );
+        targetPosVec = new THREE.Vector3(
+          trackedPos[0] + lookAtOffsetX,
+          trackedPos[1] + lookAtOffsetY,
+          trackedPos[2] + 3.0 / scale
+        );
+      } else {
+        targetPosVec = new THREE.Vector3(...cameraPosition);
+        targetLookAtVec = new THREE.Vector3(...cameraLookAt);
+      }
+
+      const dir = new THREE.Vector3().subVectors(targetPosVec, targetLookAtVec);
+      dir.multiplyScalar(zoomFactor.current);
+      const snapPos = new THREE.Vector3().addVectors(targetLookAtVec, dir);
+
+      camera.position.copy(snapPos);
+      camera.lookAt(targetLookAtVec);
+      currentLookAt.current.copy(targetLookAtVec);
+      targetPos.current.copy(snapPos);
     }
-  }, [cameraPosition, cameraLookAt, isTransitioning]);
+  }, [cameraPosition, cameraLookAt, isTransitioning, camera]);
 
   // Bind window wheel event to handle custom scroll-to-zoom
   React.useEffect(() => {
@@ -124,9 +163,10 @@ const CameraController: React.FC = () => {
       const dTarget = targetPosVec.distanceTo(targetLookAtVec);
       
       // Sine-based zoom out curve (highest at t = 0.5, pulling back)
+      // Only apply pullback when zooming IN (dTarget < dStart) to ensure smooth, slow zoom-out
       const distanceTraveled = transitionStartPos.current.distanceTo(targetPosVec);
       const maxPullback = Math.min(3.5, 1.2 + distanceTraveled * 0.25);
-      const pullback = maxPullback * Math.sin(Math.PI * easeInOutCubic);
+      const pullback = dTarget > dStart ? 0 : maxPullback * Math.sin(Math.PI * easeInOutCubic);
       const currentDistance = THREE.MathUtils.lerp(dStart, dTarget, easeInOutCubic) + pullback;
 
       // 2. Direction interpolation
@@ -148,14 +188,28 @@ const CameraController: React.FC = () => {
       if (t >= 1.0) {
         transitionActive.current = false;
         setTransitioning(false);
+        targetPos.current.copy(targetPosVec);
+        currentLookAt.current.copy(targetLookAtVec);
       }
     } else {
+      const currentAppPhase = useSceneStore.getState().appPhase;
+      // In Home scene, let the scene manage itself; skip camera controller
+      if (currentAppPhase === 'home') return;
+
       if (!useSceneStore.getState().activeStarId) {
-        // In Constellation scene, let MapControls handle camera
-        // Keep currentLookAt sync'ed with the panned camera position on the XY plane
-        currentLookAt.current.set(state.camera.position.x, state.camera.position.y, 0);
+        if (shouldSnap.current) {
+          state.camera.position.set(0, 0, 8);
+          state.camera.lookAt(0, 0, 0);
+          currentLookAt.current.set(0, 0, 0);
+          shouldSnap.current = false;
+        } else {
+          // In Constellation scene, let MapControls handle camera
+          // Keep currentLookAt sync'ed with the panned camera position on the XY plane
+          currentLookAt.current.set(state.camera.position.x, state.camera.position.y, 0);
+        }
         return;
       }
+
 
       // Normal smooth camera lerp (using zoomFactor & scroll) for Solar System / Planet View
       const dir = new THREE.Vector3().subVectors(targetPosVec, targetLookAtVec);
@@ -231,15 +285,22 @@ class CanvasErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySta
 export const SpaceCanvas: React.FC = () => {
   const activeStarId = useSceneStore((state) => state.activeStarId);
   const activePlanetId = useSceneStore((state) => state.activePlanetId);
+  const appPhase = useSceneStore((state) => state.appPhase);
 
   // Determine which scene to render
   const renderScene = () => {
+    if (appPhase === 'home') {
+      return <HomeScene />;
+    }
+    if (activePlanetId) {
+      return <PlanetDetailScene />;
+    }
     if (activeStarId) {
       return <SolarSystemScene />;
-    } else {
-      return <ConstellationScene />;
     }
+    return <ConstellationScene />;
   };
+
 
   return (
     <div className="fixed inset-0 w-full h-full bg-transparent z-0">

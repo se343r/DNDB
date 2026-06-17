@@ -36,7 +36,7 @@ export const SearchBar: React.FC = () => {
 
   return (
     <div ref={dropdownRef} className="relative w-full">
-      <div className="relative flex items-center w-full bg-zinc-900/60 hover:bg-zinc-900 border border-zinc-800 focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/10 rounded-xl backdrop-blur-md transition-all duration-300 shadow-[0_4px_30px_rgba(0,0,0,0.4)]">
+      <div className="relative flex items-center w-full bg-transparent hover:bg-white/5 border border-white/10 focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/10 rounded-xl backdrop-blur-md transition-all duration-300">
         <Search className="absolute left-3 w-3.5 h-3.5 text-zinc-500" />
         
         <input

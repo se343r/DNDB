@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Plus, RefreshCw } from 'lucide-react';
+import { Menu, Home, Compass, HelpCircle, Target, Trophy, Sparkles, ChevronDown } from 'lucide-react';
 import { useSceneStore } from '@/store/sceneStore';
 import { useAudio } from '../providers/AudioProvider';
 import SearchBar from './SearchBar';
@@ -11,78 +11,167 @@ import AudioToggle from './AudioToggle';
 export const Header: React.FC = () => {
   const router = useRouter();
   const resetScene = useSceneStore((state) => state.resetScene);
-  const setAddModalOpen = useSceneStore((state) => state.setAddModalOpen);
+  const setAppPhase = useSceneStore((state) => state.setAppPhase);
+  const setHomeTransitionState = useSceneStore((state) => state.setHomeTransitionState);
   const { playClick, playHover } = useAudio();
 
-  const handleLogoClick = () => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const activeStarId = useSceneStore((state) => state.activeStarId);
+  const activePlanetId = useSceneStore((state) => state.activePlanetId);
+
+  // Close menu when active star or planet changes
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [activeStarId, activePlanetId]);
+
+  // Close menu on click outside (using capture phase so stopPropagation inside Canvas/ThreeJS cannot prevent it)
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true);
+    };
+  }, []);
+
+  const handleHomeClick = () => {
     playClick();
+    setAppPhase('home');
+    setHomeTransitionState('gathering');
     resetScene();
     router.push('/');
   };
 
-  const handleReset = () => {
+  const handleCatalogClick = () => {
     playClick();
-    if (typeof window !== 'undefined') {
-      window.location.reload();
-    }
+    setAppPhase('catalog');
+    resetScene();
+    router.push('/catalog');
+  };
+
+  const handleNavClick = (path: string) => {
+    playClick();
+    setAppPhase('catalog');
+    resetScene();
+    router.push(path);
   };
 
   return (
-    <header className="relative z-30 px-6 py-4 border-b border-zinc-900 bg-zinc-950/60 backdrop-blur-md flex flex-wrap items-center justify-between gap-4 pointer-events-auto select-none">
-      {/* Logo and Domain Brand */}
-      <div 
-        onClick={handleLogoClick}
-        onMouseEnter={playHover}
-        className="flex items-center space-x-3 cursor-pointer group"
-      >
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 p-0.5 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
-          <div className="w-full h-full bg-black rounded-[10px] flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-indigo-400 group-hover:rotate-12 transition-transform" />
-          </div>
-        </div>
-        <div>
-          <h1 className="text-sm font-bold uppercase tracking-widest text-[#f8fafc] flex items-center space-x-2">
-            <span>Cõi Bắc Đẩu</span>
-            <span className="text-[9px] bg-indigo-500/10 text-indigo-400 font-mono px-1.5 py-0.5 rounded border border-indigo-500/20">VŨ TRỤ TRI THỨC</span>
-          </h1>
-          <p className="text-[10px] text-slate-400">Trình vinh danh anh kiệt & tinh cầu hệ thống</p>
-        </div>
-      </div>
+    <header className="fixed top-0 left-0 w-full z-30 px-6 py-5 flex items-center justify-between pointer-events-none select-none">
+      {/* Top Left: Floating Menu Button and Dropdown */}
+      {activeStarId ? (
+        <div />
+      ) : (
+        <div ref={dropdownRef} className="relative pointer-events-auto flex items-center gap-3">
+          {/* Menu Toggle Button */}
+          <button
+            onClick={() => {
+              playClick();
+              setMenuOpen(!menuOpen);
+            }}
+            onMouseEnter={playHover}
+            className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider text-slate-200 border border-white/10 hover:border-indigo-500/50 bg-black/60 hover:bg-zinc-900/80 backdrop-blur-md transition-all duration-300 shadow-[0_4px_30px_rgba(0,0,0,0.5)] cursor-pointer"
+          >
+            <Menu className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Menu</span>
+            <ChevronDown className={`w-3 h-3 text-zinc-500 transition-transform duration-300 ${menuOpen ? 'rotate-180' : ''}`} />
+          </button>
 
-      {/* Global Instant Search Space */}
-      <div className="relative w-full max-w-xs md:max-w-sm">
-        <SearchBar />
-      </div>
+          {/* Dropdown Menu */}
+          {menuOpen && (
+            <div className="absolute top-11 left-0 w-52 rounded-2xl bg-black/90 border border-white/10 backdrop-blur-lg shadow-2xl py-2 flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              {/* 1. Trang chủ */}
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleHomeClick();
+                }}
+                onMouseEnter={playHover}
+                className="flex items-center gap-3 px-4 py-2.5 text-xs text-left text-slate-300 hover:text-white hover:bg-white/10 transition duration-150 cursor-pointer"
+              >
+                <Home className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Trang chủ</span>
+              </button>
+              {/* 2. Danh mục */}
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleCatalogClick();
+                }}
+                onMouseEnter={playHover}
+                className="flex items-center gap-3 px-4 py-2.5 text-xs text-left text-slate-300 hover:text-white hover:bg-white/10 transition duration-150 cursor-pointer"
+              >
+                <Compass className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Danh mục</span>
+              </button>
+              {/* 3. Câu đố */}
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleNavClick('/quizzes');
+                }}
+                onMouseEnter={playHover}
+                className="flex items-center gap-3 px-4 py-2.5 text-xs text-left text-slate-300 hover:text-white hover:bg-white/10 transition duration-150 cursor-pointer"
+              >
+                <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Câu đố</span>
+              </button>
+              {/* 4. Nhiệm vụ */}
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleNavClick('/quests');
+                }}
+                onMouseEnter={playHover}
+                className="flex items-center gap-3 px-4 py-2.5 text-xs text-left text-slate-300 hover:text-white hover:bg-white/10 transition duration-150 cursor-pointer"
+              >
+                <Target className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Nhiệm vụ</span>
+              </button>
+              {/* 5. Bảng xếp hạng */}
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleNavClick('/leaderboard');
+                }}
+                onMouseEnter={playHover}
+                className="flex items-center gap-3 px-4 py-2.5 text-xs text-left text-slate-300 hover:text-white hover:bg-white/10 transition duration-150 cursor-pointer"
+              >
+                <Trophy className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Bảng xếp hạng</span>
+              </button>
+              {/* 6. Đề xuất */}
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  handleNavClick('/recommendations');
+                }}
+                onMouseEnter={playHover}
+                className="flex items-center gap-3 px-4 py-2.5 text-xs text-left text-slate-300 hover:text-white hover:bg-white/10 transition duration-150 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Đề xuất</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Global Controls */}
-      <div className="flex items-center space-x-3">
-        {/* Audio Toggle */}
+      {/* Top Right: Search and Music Controls */}
+      <div className="flex items-center gap-3 pointer-events-auto">
+        <div className="relative w-48 md:w-60">
+          <SearchBar />
+        </div>
         <AudioToggle />
-
-        {/* Quick Creator Summon */}
-        <button
-          onClick={() => {
-            playClick();
-            setAddModalOpen(true);
-          }}
-          onMouseEnter={playHover}
-          className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 cursor-pointer shadow-lg shadow-indigo-500/10 transition"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Thêm tinh cầu</span>
-        </button>
-
-        {/* Reset System Database Button */}
-        <button
-          onClick={handleReset}
-          onMouseEnter={playHover}
-          className="p-2 bg-zinc-900 hover:bg-red-950/20 hover:text-red-400 border border-zinc-800 rounded-xl transition text-zinc-500 cursor-pointer"
-          title="Khôi phục trạng thái mặc định"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-        </button>
       </div>
     </header>
   );
 };
+
 export default Header;
+

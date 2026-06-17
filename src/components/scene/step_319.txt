@@ -1,0 +1,39 @@
+Created At: 2026-06-17T07:59:48Z
+Completed At: 2026-06-17T07:59:48Z
+File Path: `file:///home/deist/Downloads/Work/dnbd-next/src/app/page.tsx`
+Total Lines: 182
+Total Bytes: 7914
+Showing lines 110 to 140
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+110:               {/* Sub-title */}
+111:               <p className="text-slate-400 text-sm md:text-base text-center max-w-md leading-relaxed">
+112:                 Những vì sao tri thức, những cuộc đời vĩ đại —<br className="hidden md:block" />
+113:                 được khắc hoạ trong vũ trụ 3 chiều.
+114:               </p>
+115:             </motion.div>
+116: 
+117:             {/* ── Center: orbit info label ────────────────────────────────── */}
+118:             <motion.div
+119:               className="flex flex-col items-center gap-2"
+120:               initial={{ opacity: 0, scale: 0.8 }}
+121:               animate={{ opacity: 1, scale: 1 }}
+122:               transition={{ delay: 0.7, duration: 0.8 }}
+123:             >
+124:               {/* Micro orbital guide */}
+125:               <div className="flex items-center gap-3 text-[10px] font-mono text-slate-500">
+126:                 <span className="w-12 h-px bg-slate-700" />
+127:                 <span>8 ngôi sao đang quỹ đạo hố đen</span>
+128:                 <span className="w-12 h-px bg-slate-700" />
+129:               </div>
+130:             </motion.div>
+131: 
+132:             {/* ── Bottom: CTA button ─────────────────────────────────────── */}
+133:             <motion.div
+134:               className="flex flex-col items-center gap-6 pb-8 pointer-events-auto"
+135:               initial={{ opacity: 0, y: 30 }}
+136:               animate={{ opacity: 1, y: 0 }}
+137:               transition={{ delay: 0.5, duration: 0.9 }}
+138:             >
+139:               {/* Explore button */}
+140:               <button
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

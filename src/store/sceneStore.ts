@@ -1,11 +1,21 @@
 import { create } from 'zustand';
 
+export type AppPhase = 'home' | 'catalog';
+export type HomeTransitionState = 'idle' | 'converging' | 'shooting' | 'flash' | 'done' | 'gathering' | 'supernova';
+
 interface SceneState {
   activeStarId: string | null;
   activePlanetId: string | null;
   cameraPosition: [number, number, number];
   cameraLookAt: [number, number, number];
   isTransitioning: boolean;
+  transitionDuration: number;
+  
+  // App phase: home screen vs catalog (constellation)
+  appPhase: AppPhase;
+  homeTransitionState: HomeTransitionState;
+  setAppPhase: (phase: AppPhase) => void;
+  setHomeTransitionState: (state: HomeTransitionState) => void;
   
   // 3D Perspective settings matching next-main
   tiltAngleX: number;
@@ -19,7 +29,8 @@ interface SceneState {
   setActiveStarId: (id: string | null) => void;
   setActivePlanetId: (id: string | null) => void;
   setCameraTarget: (position: [number, number, number], lookAt: [number, number, number]) => void;
-  setTransitioning: (val: boolean) => void;
+  setTransitioning: (val: boolean, duration?: number) => void;
+  triggerTransition: (position: [number, number, number], lookAt: [number, number, number], duration?: number) => void;
   
   // Dynamic camera tracking for moving objects
   trackedPosition: [number, number, number] | null;
@@ -38,6 +49,14 @@ interface SceneState {
   hasPlayedIntro: boolean;
   setHasPlayedIntro: (val: boolean) => void;
 
+  // Personality Quiz states
+  quizActive: boolean;
+  quizPhase: 'idle' | 'spawning' | 'quiz' | 'matched' | 'done';
+  matchedPlanetId: string | null;
+  setQuizActive: (val: boolean) => void;
+  setQuizPhase: (val: 'idle' | 'spawning' | 'quiz' | 'matched' | 'done') => void;
+  setMatchedPlanetId: (val: string | null) => void;
+
   resetScene: () => void;
 }
 
@@ -47,6 +66,13 @@ export const useSceneStore = create<SceneState>((set) => ({
   cameraPosition: [0, 0, 8],
   cameraLookAt: [0, 0, 0],
   isTransitioning: false,
+  transitionDuration: 1.0,
+
+  // App phase
+  appPhase: 'home',
+  homeTransitionState: 'idle',
+  setAppPhase: (phase) => set({ appPhase: phase }),
+  setHomeTransitionState: (state) => set({ homeTransitionState: state }),
   
   // Default values matching next-main
   tiltAngleX: 64,
@@ -58,6 +84,14 @@ export const useSceneStore = create<SceneState>((set) => ({
   constellationIntroComplete: false,
   hasPlayedIntro: false,
 
+  // Personality Quiz defaults
+  quizActive: false,
+  quizPhase: 'idle',
+  matchedPlanetId: null,
+  setQuizActive: (val) => set({ quizActive: val }),
+  setQuizPhase: (val) => set({ quizPhase: val }),
+  setMatchedPlanetId: (val) => set({ matchedPlanetId: val }),
+
   setActiveStarId: (id) => set({ activeStarId: id }),
   setActivePlanetId: (id) => set({ activePlanetId: id }),
   setConstellationIntroComplete: (val) => set({ constellationIntroComplete: val }),
@@ -68,7 +102,14 @@ export const useSceneStore = create<SceneState>((set) => ({
     cameraLookAt: lookAt 
   }),
   
-  setTransitioning: (val) => set({ isTransitioning: val }),
+  setTransitioning: (val, duration = 1.0) => set({ isTransitioning: val, transitionDuration: duration }),
+  
+  triggerTransition: (position, lookAt, duration = 1.0) => set({
+    cameraPosition: position,
+    cameraLookAt: lookAt,
+    isTransitioning: true,
+    transitionDuration: duration
+  }),
   
   trackedPosition: null,
   setTrackedPosition: (pos) => set({ trackedPosition: pos }),
@@ -93,7 +134,12 @@ export const useSceneStore = create<SceneState>((set) => ({
     perspective3D: true,
     isAddModalOpen: false,
     planetAngles: {},
-    trackedPosition: null
+    trackedPosition: null,
+    // Reset personality quiz states
+    quizActive: false,
+    quizPhase: 'idle',
+    matchedPlanetId: null
   })
 }));
+
 

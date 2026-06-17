@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove unused createDiskTexture function\"",
+  "EndLine": "119",
+  "Instruction": "\"Remove the unused createDiskTexture function\"",
+  "ReplacementContent": "\"\\n\"",
+  "StartLine": "100",
+  "TargetContent": "\"/** Accretion disk: radial gradient on a ring (for RingGeometry UV) */\\nfunction createDiskTexture(colorA: string, colorB: string): THREE.CanvasTexture {\\n  const S = 512;\\n  const canvas = document.createElement('canvas');\\n  canvas.width = S; canvas.height = S;\\n  const ctx = canvas.getContext('2d')!;\\n  ctx.clearRect(0, 0, S, S);\\n  const c = S / 2;\\n  // Annular glow\\n  const g = ctx.createRadialGradient(c, c, c * 0.28, c, c, c * 0.95);\\n  g.addColorStop(0.0,  colorA.replace('rgb(', 'rgba(').replace(')', ', 0.0)'));\\n  g.addColorStop(0.15, colorA.replace('rgb(', 'rgba(').replace(')', ', 0.85)'));\\n  g.addColorStop(0.45, colorB.replace('rgb(', 'rgba(').replace(')', ', 0.55)'));\\n  g.addColorStop(0.75, colorB.replace('rgb(', 'rgba(').replace(')', ', 0.15)'));\\n  g.addColorStop(1.0,  'rgba(0,0,0,0)');\\n  ctx.fillStyle = g;\\n  ctx.fillRect(0, 0, S, S);\\n  return new THREE.CanvasTexture(canvas);\\n}\\n\"",
+  "TargetFile": "\"/home/deist/Downloads/Work/dnbd-next/src/components/scene/HomeScene.tsx\"",
+  "toolAction": "\"Removing unused function\"",
+  "toolSummary": "\"Clean unused code\""
+}

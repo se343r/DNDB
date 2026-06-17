@@ -1,0 +1,75 @@
+Created At: 2026-06-17T08:04:04Z
+Completed At: 2026-06-17T08:04:04Z
+File Path: `file:///home/deist/Downloads/Work/dnbd-next/src/components/scene/HomeScene.tsx`
+Total Lines: 500
+Total Bytes: 19283
+Showing lines 305 to 405
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+305: // ─── OrbitalStar ─────────────────────────────────────────────────────────────
+306: interface OrbitalStarProps {
+307:   cfg:           typeof STAR_CONFIGS[number];
+308:   index:         number;
+309:   glowTex:       THREE.CanvasTexture | null;
+310:   transitionRef: React.MutableRefObject<boolean>;
+311:   positionRef:   React.MutableRefObject<THREE.Vector3>;
+312: }
+313: 
+314: const OrbitalStar: React.FC<OrbitalStarProps> = ({ cfg, index, glowTex, transitionRef, positionRef }) => {
+315:   const groupRef  = useRef<THREE.Group>(null);
+316:   const meshRef   = useRef<THREE.Mesh>(null);
+317:   const spriteRef = useRef<THREE.Sprite>(null);
+318:   const lightRef  = useRef<THREE.PointLight>(null);
+319:   const angleRef  = useRef((index * Math.PI * 2) / 8 + index * 0.31);
+320:   const seed      = index * 137.508 + 0.5;
+321:   const R         = 0.22;
+322: 
+323:   const orbitMat = useMemo(() =>
+324:     new THREE.Matrix4().makeRotationX(cfg.tiltX).multiply(new THREE.Matrix4().makeRotationZ(cfg.tiltZ)),
+325:     [cfg.tiltX, cfg.tiltZ]);
+326: 
+327:   useFrame(({ clock }, delta) => {
+328:     if (!groupRef.current) return;
+329:     const t = clock.getElapsedTime();
+330: 
+331:     if (transitionRef.current) {
+332:       groupRef.current.position.lerp(new THREE.Vector3(0, 0, 0), delta * 3.8);
+333:       positionRef.current.copy(groupRef.current.position);
+334:       if (spriteRef.current) {
+335:         const s = R * 12 + Math.sin(t * 15 + see
+<truncated 1324 bytes>
+siveIntensity={5} roughness={0.05} metalness={0.1} />
+372:       </mesh>
+373:       {glowTex && (
+374:         <sprite ref={spriteRef} scale={[R * 5.5, R * 5.5, 1]}>
+375:           <spriteMaterial map={glowTex} color={cfg.glow} transparent opacity={0.65}
+376:             blending={THREE.AdditiveBlending} depthWrite={false} />
+377:         </sprite>
+378:       )}
+379:       <pointLight ref={lightRef} color={cfg.glow} intensity={2.5} distance={4.5} decay={2} />
+380:     </group>
+381:   );
+382: };
+383: 
+384: // ─── OrbitTrail ───────────────────────────────────────────────────────────────
+385: const OrbitTrail: React.FC<typeof STAR_CONFIGS[number]> = ({ orbitA, orbitB, tiltX, tiltZ }) => {
+386:   const line = useMemo(() => {
+387:     const m = new THREE.Matrix4().makeRotationX(tiltX).multiply(new THREE.Matrix4().makeRotationZ(tiltZ));
+388:     const pts: THREE.Vector3[] = [];
+389:     for (let i = 0; i <= 128; i++) {
+390:       const a = (i / 128) * Math.PI * 2;
+391:       pts.push(new THREE.Vector3(Math.cos(a) * orbitA, Math.sin(a) * orbitB, 0).applyMatrix4(m));
+392:     }
+393:     return new THREE.Line(
+394:       new THREE.BufferGeometry().setFromPoints(pts),
+395:       new THREE.LineBasicMaterial({
+396:         color: '#1a2a44', transparent: true, opacity: 0.22,
+397:         blending: THREE.AdditiveBlending, depthWrite: false,
+398:       })
+399:     );
+400:   }, [orbitA, orbitB, tiltX, tiltZ]);
+401:   return <primitive object={line} />;
+402: };
+403: 
+404: // ─── ShootBeam ────────────────────────────────────────────────────────────────
+405: const ShootBeam: React.FC<{
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

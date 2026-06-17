@@ -81,7 +81,7 @@ function getPaletteColor(palette: Color[], value: number): string {
   return `rgb(${interpolated.r}, ${interpolated.g}, ${interpolated.b})`;
 }
 
-export function generatePlanetCanvas(seed: number, width = 512, height = 256): HTMLCanvasElement | null {
+export function generatePlanetCanvas(seed: number, width = 512, height = 256, isStone = false): HTMLCanvasElement | null {
   if (typeof window === 'undefined') return null;
 
   const canvas = document.createElement('canvas');
@@ -91,8 +91,13 @@ export function generatePlanetCanvas(seed: number, width = 512, height = 256): H
   if (!ctx) return null;
 
   const noise = new SeededNoise(seed);
-  const paletteIndex = Math.abs(seed) % 6;
-  const palette = PALETTES[paletteIndex];
+  const paletteIndex = isStone ? 6 : Math.abs(seed) % 6;
+  const palette = isStone ? [
+    { r: 45, g: 45, b: 45 },    // Deep charcoal
+    { r: 85, g: 85, b: 85 },    // Dark grey
+    { r: 125, g: 125, b: 125 }, // Light grey
+    { r: 165, g: 165, b: 165 }  // Pale ash
+  ] : PALETTES[paletteIndex];
 
   // Palette-specific styling modifiers (e.g. gas bands or craters)
   const isGasGiant = paletteIndex === 0 || paletteIndex === 5; // Desert & Alien can be gas giants
