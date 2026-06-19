@@ -26,7 +26,11 @@ export function usePlanets(starId?: string | null) {
           query = query.eq('star_id', starId);
         }
 
-        const { data, error: dbError } = await query;
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Query timed out after 3.5s')), 3500)
+        );
+
+        const { data, error: dbError } = await Promise.race([query, timeoutPromise]) as any;
         if (dbError) throw dbError;
 
         if (data && data.length > 0) {
@@ -77,19 +81,30 @@ export function usePlanetDetail(planetId: string) {
       }
 
       try {
-        const { data: pData, error: pError } = await supabase!
+        const pQuery = supabase!
           .from('planets')
           .select('*')
           .eq('id', planetId)
           .single();
 
-        if (pError) throw pError;
-
-        const { data: achData, error: achError } = await supabase!
+        const achQuery = supabase!
           .from('achievements')
           .select('*')
           .eq('planet_id', planetId);
 
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Query timed out after 3.5s')), 3500)
+        );
+
+        const [pResult, achResult] = await Promise.race([
+          Promise.all([pQuery, achQuery]),
+          timeoutPromise
+        ]) as any;
+
+        const { data: pData, error: pError } = pResult;
+        if (pError) throw pError;
+
+        const { data: achData, error: achError } = achResult;
         if (achError) throw achError;
 
         setPlanet(pData);

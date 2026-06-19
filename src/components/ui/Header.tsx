@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, Home, Compass, HelpCircle, Target, Trophy, Sparkles, ChevronDown } from 'lucide-react';
+import { Menu, Home, Compass, HelpCircle, Trophy, Sparkles, ChevronDown } from 'lucide-react';
 import { useSceneStore } from '@/store/sceneStore';
 import { useAudio } from '../providers/AudioProvider';
 import SearchBar from './SearchBar';
@@ -20,6 +20,7 @@ export const Header: React.FC = () => {
 
   const activeStarId = useSceneStore((state) => state.activeStarId);
   const activePlanetId = useSceneStore((state) => state.activePlanetId);
+  const appPhase = useSceneStore((state) => state.appPhase);
 
   // Close menu when active star or planet changes
   useEffect(() => {
@@ -64,7 +65,7 @@ export const Header: React.FC = () => {
   return (
     <header className="fixed top-0 left-0 w-full z-30 px-6 py-5 flex items-center justify-between pointer-events-none select-none">
       {/* Top Left: Floating Menu Button and Dropdown */}
-      {activeStarId ? (
+      {activeStarId || appPhase === 'home' ? (
         <div />
       ) : (
         <div ref={dropdownRef} className="relative pointer-events-auto flex items-center gap-3">
@@ -121,19 +122,7 @@ export const Header: React.FC = () => {
                 <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
                 <span>Câu đố</span>
               </button>
-              {/* 4. Nhiệm vụ */}
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  handleNavClick('/quests');
-                }}
-                onMouseEnter={playHover}
-                className="flex items-center gap-3 px-4 py-2.5 text-xs text-left text-slate-300 hover:text-white hover:bg-white/10 transition duration-150 cursor-pointer"
-              >
-                <Target className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Nhiệm vụ</span>
-              </button>
-              {/* 5. Bảng xếp hạng */}
+              {/* 4. Bảng xếp hạng */}
               <button
                 onClick={() => {
                   setMenuOpen(false);
@@ -145,7 +134,7 @@ export const Header: React.FC = () => {
                 <Trophy className="w-3.5 h-3.5 text-indigo-400" />
                 <span>Bảng xếp hạng</span>
               </button>
-              {/* 6. Đề xuất */}
+              {/* 5. Đề xuất */}
               <button
                 onClick={() => {
                   setMenuOpen(false);

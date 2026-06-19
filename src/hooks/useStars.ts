@@ -17,10 +17,16 @@ export function useStars() {
       }
 
       try {
-        const { data, error: dbError } = await supabase!
+        const queryPromise = supabase!
           .from('stars')
           .select('*')
           .order('created_at', { ascending: true });
+
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Query timed out after 3.5s')), 3500)
+        );
+
+        const { data, error: dbError } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
         if (dbError) throw dbError;
 

@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, Check, X, Award, RotateCcw } from 'lucide-react';
 import { BackButton } from '@/components/ui/BackButton';
 import { useAudio } from '@/components/providers/AudioProvider';
+import { useSceneStore } from '@/store/sceneStore';
 
 interface Question {
   id: number;
@@ -39,6 +40,17 @@ const QUESTIONS: Question[] = [
 ];
 
 export default function QuizzesPage() {
+  const setAppPhase = useSceneStore((state) => state.setAppPhase);
+  const resetScene = useSceneStore((state) => state.resetScene);
+
+  useEffect(() => {
+    setAppPhase('quizzes');
+    resetScene();
+    return () => {
+      setAppPhase('catalog');
+    };
+  }, [setAppPhase, resetScene]);
+
   const { playClick, playHover } = useAudio();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);

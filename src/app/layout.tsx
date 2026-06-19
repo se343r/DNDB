@@ -27,6 +27,24 @@ export default function RootLayout({
       className={`${inter.className} h-full antialiased overflow-hidden select-none`}
     >
       <body className="h-full bg-black text-white relative flex flex-col">
+        {/* Global Chunk Load Error Auto-Reload handler */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.addEventListener('error', function(e) {
+                var msg = e.message || '';
+                if (
+                  msg.indexOf('ChunkLoadError') !== -1 ||
+                  msg.toLowerCase().indexOf('loading chunk') !== -1 ||
+                  msg.toLowerCase().indexOf('failed to fetch') !== -1
+                ) {
+                  console.warn('Next.js chunk load error detected! Reloading page to fetch fresh assets...', e);
+                  window.location.reload();
+                }
+              }, true);
+            `,
+          }}
+        />
         <AudioProvider>
           {/* Nebula CSS background — hidden during intro, fades in after */}
           <NebulaBackground />

@@ -1,7 +1,4 @@
-'use client';
-
-import React, { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import React from 'react';
 import { Line } from '@react-three/drei';
 import { Star } from '@/lib/types';
 import * as THREE from 'three';
@@ -44,6 +41,7 @@ export const AnimatedConstellationLines: React.FC<AnimatedConstellationLinesProp
   stars, phase, drawProgress
 }) => {
   if (stars.length < 2) return null;
+
   const starMap = new Map(stars.map((s) => [s.id, s]));
 
   // How many segments are fully or partially visible
@@ -86,7 +84,7 @@ export const AnimatedConstellationLines: React.FC<AnimatedConstellationLinesProp
           color={isDrawingThisSeg ? '#ffffff' : '#818cf8'}
           lineWidth={isDrawingThisSeg ? glowWidth : (phase >= 2 ? 2 : 3)}
           transparent
-          opacity={isDrawingThisSeg ? 0.9 : (phase >= 2 ? 0.15 : 0.3)}
+          opacity={isDrawingThisSeg ? 0.9 : (phase >= 2 ? 0.15 : 0.3) * lineOpacity}
           dashed={isDashing && !isDrawingThisSeg}
           dashScale={1}
           dashSize={0.06}
@@ -98,7 +96,7 @@ export const AnimatedConstellationLines: React.FC<AnimatedConstellationLinesProp
           color={isDrawingThisSeg ? '#e0e8ff' : '#ffffff'}
           lineWidth={isDrawingThisSeg ? lineWidth : (phase >= 2 ? 0.5 : 1)}
           transparent
-          opacity={isDrawingThisSeg ? 1.0 : (phase >= 2 ? 0.2 : 0.45)}
+          opacity={isDrawingThisSeg ? 1.0 : (phase >= 2 ? 0.2 : 0.45) * lineOpacity}
           dashed={isDashing && !isDrawingThisSeg}
           dashScale={1}
           dashSize={0.06}

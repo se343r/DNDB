@@ -46,9 +46,9 @@ export default function StarPage() {
     if (activeStar) {
       const posX = activeStar.position_x * 5.5;
       const posY = activeStar.position_y * 3.5;
-      triggerTransition([posX, posY - 2.8, 6.8], [posX, posY, 0]);
+      // Zoom out to star system — let CameraController complete the full animation
+      triggerTransition([posX, posY - 2.8, 6.8], [posX, posY, 0], 1.2);
     }
-    setTimeout(() => setTransitioning(false), 1000);
   };
 
   // 3D Visual Coordinates from Zustand store
@@ -71,15 +71,17 @@ export default function StarPage() {
       return;
     }
 
+    // Don't override camera or transition if a planet animation is in progress
+    if (useSceneStore.getState().isTransitioning) return;
+    // Don't touch camera if a planet HUD is already open
+    if (useSceneStore.getState().activePlanetId) return;
+
     const posX = activeStar.position_x * 5.5;
     const posY = activeStar.position_y * 3.5;
 
-    // Set camera target tilted on the Y-axis with a wider field of view (Z=6.8) to see all orbits
     setCameraTarget([posX, posY - 2.8, 6.8], [posX, posY, 0]);
     setActiveStarId(activeStar.id);
-    
-    // Preserve active planet if it belongs to this star system
-    // Wait until planets have loaded before potentially clearing the activePlanetId
+
     if (!planetsLoading) {
       if (activePlanetId && planets && planets.some((p) => p.id === activePlanetId)) {
         setTrackedPosition(null);

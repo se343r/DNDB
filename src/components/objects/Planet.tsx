@@ -25,6 +25,9 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
   const router = useRouter();
   const { playHover, playClick } = useAudio();
 
+  const setCameraTarget = useSceneStore((state) => state.setCameraTarget);
+  const setActivePlanetId = useSceneStore((state) => state.setActivePlanetId);
+  const setTransitioning = useSceneStore((state) => state.setTransitioning);
   const triggerTransition = useSceneStore((state) => state.triggerTransition);
   const activePlanetId = useSceneStore((state) => state.activePlanetId);
 
@@ -51,6 +54,9 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
 
   const angleRef = useRef(initialAngle);
 
+  // Track whether we've already taken the position snapshot for this activation
+  const positionSnapped = useRef(false);
+
   // Animate: local rotation + orbital translation
   useFrame((state, delta) => {
     // 1. Spin the planet on its axis
@@ -66,17 +72,24 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
       const z = Math.sin(angleRef.current) * planet.orbit_radius;
       groupRef.current.position.set(x, 0, z);
 
-      // Dynamically track position if this is the active planet
-      if (useSceneStore.getState().activePlanetId === planet.id) {
+      const storeState = useSceneStore.getState();
+
+      if (storeState.activePlanetId === planet.id) {
+        // Update trackedPosition every frame so camera follows the orbiting planet,
+        // keeping it in a fixed position on screen.
         const worldPos = new THREE.Vector3();
         groupRef.current.getWorldPosition(worldPos);
-        useSceneStore.getState().setTrackedPosition([worldPos.x, worldPos.y, worldPos.z]);
+        storeState.setTrackedPosition([worldPos.x, worldPos.y, worldPos.z]);
+      } else {
+        positionSnapped.current = false;
       }
 
       // Save the current angle back into the Zustand store dynamically without triggering React re-renders
-      useSceneStore.getState().planetAngles[planet.id] = angleRef.current;
+      storeState.planetAngles[planet.id] = angleRef.current;
     }
   });
+
+
 
   const handleClick = (e: any) => {
     e.stopPropagation();
@@ -88,25 +101,33 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
       const worldPos = new THREE.Vector3();
       groupRef.current.getWorldPosition(worldPos);
 
-      // Offset camera to show planet on the right side (camera looks left of planet)
+      // Offset camera: planet appears on right side of screen (camera looks slightly left)
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
       const lookAtOffsetX = isMobile ? 0 : -0.7;
       const lookAtOffsetY = isMobile ? -0.7 : 0;
 
-      // Trigger cinematic zoom-in camera transition (1200ms)
+      // Trigger cinematic zoom-in transition
       triggerTransition(
         [worldPos.x + lookAtOffsetX, worldPos.y + lookAtOffsetY, worldPos.z + 3.0 / 2.8],
         [worldPos.x + lookAtOffsetX, worldPos.y + lookAtOffsetY, worldPos.z],
         1.2
       );
 
-      // Navigate to planet detail page after the camera animation finishes
+      // Snapshot the planet's exact world position at click time (raw, no offsets).
+      // CameraController applies lookAtOffsetX/Y itself when reading trackedPosition.
+      useSceneStore.getState().setTrackedPosition([worldPos.x, worldPos.y, worldPos.z]);
+      positionSnapped.current = true;
+
+      // Show PlanetHud overlay (stays in solar system scene)
+      setActivePlanetId(planet.id);
+
+      // Clear transitioning flag after animation
       setTimeout(() => {
-        router.push(`/planet/${planet.id}`);
+        setTransitioning(false);
       }, 1200);
     } else {
-      // Already in detail view — just navigate directly
-      router.push(`/planet/${planet.id}`);
+      // Non-orbiting mode (PlanetDetailScene): no action needed
+      setCameraTarget([0, 0, 1.8], [0, 0, 0]);
     }
   };
 

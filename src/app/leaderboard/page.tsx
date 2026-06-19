@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Medal, Star, Flame } from 'lucide-react';
 import { BackButton } from '@/components/ui/BackButton';
+import { useSceneStore } from '@/store/sceneStore';
 import { useAudio } from '@/components/providers/AudioProvider';
 
 interface LeaderboardUser {
@@ -26,6 +27,15 @@ const USERS: LeaderboardUser[] = [
 
 export default function LeaderboardPage() {
   const { playHover } = useAudio();
+  const setAppPhase = useSceneStore((state) => state.setAppPhase);
+  const leaderboardStarsLanded = useSceneStore((state) => state.leaderboardStarsLanded);
+
+  useEffect(() => {
+    setAppPhase('leaderboard');
+    return () => {
+      setAppPhase('catalog');
+    };
+  }, [setAppPhase]);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -74,43 +84,77 @@ export default function LeaderboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {USERS.map((user, idx) => (
-                  <motion.tr
-                    key={user.rank}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.06 }}
-                    onMouseEnter={playHover}
-                    className={`transition-colors duration-150 ${
-                      user.isCurrentUser 
-                        ? 'bg-indigo-600/10 text-indigo-300 font-semibold' 
-                        : 'hover:bg-white/3'
-                    }`}
-                  >
-                    <td className="py-4 px-6 flex items-center gap-3">
-                      {getRankIcon(user.rank)}
-                    </td>
-                    <td className="py-4 px-6 text-xs md:text-sm font-medium">
-                      {user.name}
-                    </td>
-                    <td className="py-4 px-6 text-center text-xs md:text-sm font-mono text-slate-400">
-                      {user.level}
-                    </td>
-                    <td className="py-4 px-6 text-right text-xs md:text-sm font-mono font-bold text-indigo-200">
-                      {user.points.toLocaleString()}
-                    </td>
-                    <td className="py-4 px-6 text-center text-xs md:text-sm">
-                      {user.streak > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-orange-400 font-mono">
-                          <Flame className="w-3.5 h-3.5 fill-current" />
-                          {user.streak}d
-                        </span>
-                      ) : (
-                        <span className="text-slate-600">-</span>
-                      )}
-                    </td>
-                  </motion.tr>
-                ))}
+                {USERS.map((user, idx) => {
+                  const isLanded = idx < 5 && leaderboardStarsLanded[idx];
+                  
+                  // Define rank styling classes
+                  let bgClass = "bg-transparent";
+                  let borderClass = "border-l-4 border-l-transparent border-white/5";
+                  let glowClass = "";
+                  let textClass = "text-slate-300";
+
+                  if (isLanded) {
+                    if (user.rank === 1) {
+                      bgClass = "bg-gradient-to-r from-yellow-500/15 via-amber-500/5 to-indigo-950/5";
+                      borderClass = "border-l-4 border-l-yellow-400 border-yellow-500/20";
+                      glowClass = "shadow-[0_0_20px_rgba(234,179,8,0.15)]";
+                      textClass = "text-yellow-200 drop-shadow-[0_0_8px_rgba(234,179,8,0.85)] font-bold scale-105";
+                    } else if (user.rank === 2 || user.rank === 3) {
+                      bgClass = "bg-gradient-to-r from-slate-400/15 via-slate-500/5 to-indigo-950/5";
+                      borderClass = "border-l-4 border-l-slate-300 border-slate-400/20";
+                      glowClass = "shadow-[0_0_20px_rgba(203,213,225,0.12)]";
+                      textClass = "text-slate-100 drop-shadow-[0_0_8px_rgba(203,213,225,0.8)] font-bold scale-105";
+                    } else { // Ranks 4 and 5
+                      bgClass = "bg-gradient-to-r from-orange-800/15 via-amber-900/5 to-indigo-950/5";
+                      borderClass = "border-l-4 border-l-amber-600 border-amber-700/20";
+                      glowClass = "shadow-[0_0_20px_rgba(217,119,6,0.1)]";
+                      textClass = "text-orange-200 drop-shadow-[0_0_8px_rgba(217,119,6,0.7)] font-bold scale-105";
+                    }
+                  } else if (user.isCurrentUser) {
+                    bgClass = "bg-indigo-600/10";
+                    borderClass = "border-l-4 border-l-indigo-500/50 border-white/5";
+                    textClass = "text-indigo-300 font-semibold";
+                  }
+
+                  return (
+                    <motion.tr
+                      key={user.rank}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.06 }}
+                      onMouseEnter={playHover}
+                      className={`transition-all duration-700 border-b border-white/5 ${bgClass} ${borderClass} ${glowClass}`}
+                    >
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          {/* Anchor element for the 3D star coordinates */}
+                          <div id={`leaderboard-rank-${idx}`} className="w-5 h-5 flex items-center justify-center relative">
+                            {getRankIcon(user.rank)}
+                          </div>
+                        </div>
+                      </td>
+                      <td className={`py-4 px-6 text-xs md:text-sm transition-all duration-700 ${textClass}`}>
+                        {user.name}
+                      </td>
+                      <td className="py-4 px-6 text-center text-xs md:text-sm font-mono text-slate-400">
+                        {user.level}
+                      </td>
+                      <td className={`py-4 px-6 text-right text-xs md:text-sm font-mono font-bold transition-all duration-700 ${isLanded ? textClass : 'text-indigo-200'}`}>
+                        {user.points.toLocaleString()}
+                      </td>
+                      <td className="py-4 px-6 text-center text-xs md:text-sm">
+                        {user.streak > 0 ? (
+                          <span className="inline-flex items-center gap-1 text-orange-400 font-mono">
+                            <Flame className="w-3.5 h-3.5 fill-current" />
+                            {user.streak}d
+                          </span>
+                        ) : (
+                          <span className="text-slate-600">-</span>
+                        )}
+                      </td>
+                    </motion.tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

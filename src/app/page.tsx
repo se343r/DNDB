@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useSceneStore } from '@/store/sceneStore';
 import { MOCK_PLANETS, MOCK_STARS } from '@/lib/mockData';
+import DnbdIntro from '@/components/ui/DnbdIntro';
 
 const QUIZ_QUESTIONS = [
   {
@@ -60,15 +61,16 @@ export default function HomePage() {
   const setHomeTransitionState = useSceneStore((s) => s.setHomeTransitionState);
   const setAppPhase         = useSceneStore((s) => s.setAppPhase);
   const setConstellationIntroComplete = useSceneStore((s) => s.setConstellationIntroComplete);
-  const setHasPlayedIntro = useSceneStore((s) => s.setHasPlayedIntro);
+  const hasPlayedIntro      = useSceneStore((s) => s.hasPlayedIntro);
+  const setHasPlayedIntro   = useSceneStore((s) => s.setHasPlayedIntro);
   const router              = useRouter();
 
   // Clean up and reset intro states when entering home page
   useEffect(() => {
     setAppPhase('home');
     setConstellationIntroComplete(false);
-    setHasPlayedIntro(false);
-  }, [setAppPhase, setConstellationIntroComplete, setHasPlayedIntro]);
+    // Note: hasPlayedIntro is NOT reset here — intro plays only once per session
+  }, [setAppPhase, setConstellationIntroComplete]);
 
   const quizActive = useSceneStore((s) => s.quizActive);
   const quizPhase = useSceneStore((s) => s.quizPhase);
@@ -175,6 +177,19 @@ export default function HomePage() {
   // Only render this overlay while on home phase
   if (appPhase !== 'home') return null;
 
+  // ── Intro gate ──────────────────────────────────────────────────────────────
+  if (!hasPlayedIntro) {
+    return (
+      <motion.div
+        className="fixed inset-0 z-[200] pointer-events-auto"
+        initial={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
+        <DnbdIntro onComplete={() => setHasPlayedIntro(true)} />
+      </motion.div>
+    );
+  }
+
   return (
     <>
       {/* ── Fullscreen transition flash ─────────────────────────────────── */}
@@ -254,7 +269,7 @@ export default function HomePage() {
                 <button
                   id="btn-explore"
                   onClick={handleExplore}
-                  className="group relative overflow-hidden px-10 py-4 rounded-full text-sm font-bold tracking-wider uppercase cursor-pointer transition-all duration-300 animate-in fade-in"
+                  className="group relative overflow-hidden w-[280px] h-[54px] flex items-center justify-center rounded-full text-sm font-bold tracking-wider uppercase cursor-pointer transition-all duration-300 animate-in fade-in"
                   style={{
                     background: 'linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(168,85,247,0.15) 100%)',
                     border: '1px solid rgba(139,92,246,0.4)',
@@ -283,14 +298,14 @@ export default function HomePage() {
                 </button>
 
                 {/* Quiz button */}
-                <div className="flex flex-col items-center gap-1.5">
-                  <p className="text-[10px] text-pink-400/80 font-mono tracking-wider font-semibold">
+                <div className="relative flex flex-col items-center justify-center">
+                  <p className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 text-[10px] text-pink-400/80 font-mono tracking-wider font-semibold whitespace-nowrap">
                     Danh nhân nào hợp với bạn nhất?
                   </p>
                   <button
                     id="btn-quiz"
                     onClick={handleStartQuiz}
-                    className="group relative overflow-hidden px-8 py-3.5 rounded-full text-xs font-bold tracking-wider uppercase cursor-pointer transition-all duration-300 outline-none"
+                    className="group relative overflow-hidden w-[280px] h-[54px] flex items-center justify-center rounded-full text-sm font-bold tracking-wider uppercase cursor-pointer transition-all duration-300 outline-none"
                     style={{
                       background: 'linear-gradient(135deg, rgba(168,85,247,0.15) 0%, rgba(236,72,153,0.15) 100%)',
                       border: '1px solid rgba(236,72,153,0.4)',
@@ -298,7 +313,24 @@ export default function HomePage() {
                       boxShadow: '0 0 30px rgba(236,72,153,0.15), inset 0 0 20px rgba(168,85,247,0.05)',
                     }}
                   >
-                    Làm Trắc Nghiệm Tính Cách
+                    {/* Shimmer sweep */}
+                    <span
+                      className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out"
+                      style={{
+                        background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)',
+                      }}
+                    />
+                    <span className="relative flex items-center gap-3">
+                      <span
+                        className="w-2 h-2 rounded-full bg-pink-400 animate-pulse"
+                        style={{ boxShadow: '0 0 8px #f472b6' }}
+                      />
+                      Trắc Nghiệm Tính Cách
+                      <span
+                        className="w-2 h-2 rounded-full bg-pink-400 animate-pulse"
+                        style={{ boxShadow: '0 0 8px #f472b6', animationDelay: '0.5s' }}
+                      />
+                    </span>
                   </button>
                 </div>
               </div>

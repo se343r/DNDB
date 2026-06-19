@@ -143,8 +143,7 @@ const ParticleAccretionDisk: React.FC<{ parentRef: React.RefObject<THREE.Group> 
     return [pos, cols, szs, data];
   }, []);
 
-  // Tilt disk diagonally to the left: pitch forward (X) + lean left (Z)
-  const diskEuler = useMemo(() => new THREE.Euler(Math.PI / 2.4, 0, -Math.PI / 5), []);
+  const quizProgressRef = useRef(0);
 
   // Update positions in render loop
   useFrame((state, delta) => {
@@ -192,6 +191,14 @@ const ParticleAccretionDisk: React.FC<{ parentRef: React.RefObject<THREE.Group> 
 
     const radMult = 1.0 - Math.pow(progress, 1.6);
 
+    const targetProgress = (quizActive && homeTransitionState !== 'converging' && homeTransitionState !== 'shooting' && homeTransitionState !== 'flash' && homeTransitionState !== 'done') ? 1.0 : 0.0;
+    quizProgressRef.current = THREE.MathUtils.lerp(quizProgressRef.current, targetProgress, delta * 3.0);
+    const quizP = quizProgressRef.current;
+    
+    const currentX = THREE.MathUtils.lerp(Math.PI / 2.4, 0, quizP);
+    const currentZ = THREE.MathUtils.lerp(-Math.PI / 5, 0, quizP);
+    const currentEuler = new THREE.Euler(currentX, 0, currentZ);
+
     // Get black hole position in camera space
     bhCam.copy(bhWorldPos).applyMatrix4(viewMatrix);
 
@@ -219,7 +226,7 @@ const ParticleAccretionDisk: React.FC<{ parentRef: React.RefObject<THREE.Group> 
       );
 
       // 2. Rotate to world space (using the disk's tilt angle) and add parent world matrix
-      tempV.applyEuler(diskEuler);
+      tempV.applyEuler(currentEuler);
       if (parentRef.current) {
         tempV.applyMatrix4(parentRef.current.matrixWorld);
       }
@@ -359,10 +366,10 @@ const QuizPlanet: React.FC = () => {
   const groupRef = useRef<THREE.Group>(null);
   const angleRef = useRef(0);
   const spawnTimer = useRef(0);
-  const diskEuler = useMemo(() => new THREE.Euler(Math.PI / 2.4, 0, -Math.PI / 5), []);
+  const quizProgressRef = useRef(0);
   const R = 1.66;
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     if (!quizActive) return;
 
     // Spin planet
@@ -387,6 +394,14 @@ const QuizPlanet: React.FC = () => {
       spawnTimer.current = 0;
     }
 
+    const targetProgress = (quizActive && quizPhase !== 'done') ? 1.0 : 0.0;
+    quizProgressRef.current = THREE.MathUtils.lerp(quizProgressRef.current, targetProgress, delta * 3.0);
+    const quizP = quizProgressRef.current;
+    
+    const currentX = THREE.MathUtils.lerp(Math.PI / 2.4, 0, quizP);
+    const currentZ = THREE.MathUtils.lerp(-Math.PI / 5, 0, quizP);
+    const currentEuler = new THREE.Euler(currentX, 0, currentZ);
+
     // Update group position every frame (orbit)
     // Update position and scale imperatively
     if (groupRef.current) {
@@ -394,8 +409,14 @@ const QuizPlanet: React.FC = () => {
         Math.cos(angleRef.current) * R,
         0,
         Math.sin(angleRef.current) * R
-      ).applyEuler(diskEuler);
+      ).applyEuler(currentEuler);
       groupRef.current.position.copy(pos);
+
+      // Save values to scene.userData for HomeCameraController
+      const worldPos = new THREE.Vector3();
+      groupRef.current.getWorldPosition(worldPos);
+      state.scene.userData.quizPlanetPosition = worldPos;
+      state.scene.userData.quizPlanetAngle = angleRef.current;
     }
     if (meshRef.current) {
       meshRef.current.scale.setScalar(scaleRef.current);
@@ -444,7 +465,7 @@ const BlackHole: React.FC = () => {
   const photonTex = useMemo(() => typeof window !== 'undefined' ? createPhotonRingTex()   : null, []);
   const glowTex   = useMemo(() => typeof window !== 'undefined' ? createRadialGlow('#ff6622', 512) : null, []);
 
-  useFrame(({ clock }, delta) => {
+  useFrame(({ clock, scene }, delta) => {
     const t = clock.getElapsedTime();
 
     // Smoothly slide black hole group left in quiz mode
@@ -452,6 +473,11 @@ const BlackHole: React.FC = () => {
     bhPositionX.current = THREE.MathUtils.lerp(bhPositionX.current, targetX, delta * 3.0);
     if (groupRef.current) {
       groupRef.current.position.x = bhPositionX.current;
+
+      // Save black hole world position to scene.userData
+      const worldPos = new THREE.Vector3();
+      groupRef.current.getWorldPosition(worldPos);
+      scene.userData.blackHolePosition = worldPos;
     }
 
     // Animate core and photon ring during transition
@@ -883,66 +909,57 @@ const ShootBeam: React.FC<{
 const HomeCameraController: React.FC = () => {
   const quizActive = useSceneStore((s) => s.quizActive);
   const quizPhase = useSceneStore((s) => s.quizPhase);
-  const { camera } = useThree();
+  const { camera, scene } = useThree();
 
-  const targetPos = useMemo(() => ({
-    default: new THREE.Vector3(0, 0, 8),
-    quiz: new THREE.Vector3(-1.2, 0.5, 4.5),
-  }), []);
-  const targetLookAt = useMemo(() => ({
-    default: new THREE.Vector3(0, 0, 0),
-    quiz: new THREE.Vector3(-1.8, 0, 0),
-  }), []);
+  const currentLookAt = useRef(new THREE.Vector3(0, 0, 0));
+  const quizProgressRef = useRef(0);
 
   const isQuizView = quizActive && quizPhase !== 'idle' && quizPhase !== 'done';
-  const prevIsQuizView = useRef(isQuizView);
-
-  // Transition state tracking
-  const transitionTime = useRef(0);
-  const transitionDuration = 1.0; // Hardcoded 1.0s transition
-  const transitionStartPos = useRef(new THREE.Vector3(0, 0, 8));
-  const transitionStartLook = useRef(new THREE.Vector3(0, 0, 0));
-  const currentLookAt = useRef(new THREE.Vector3(0, 0, 0));
-  const isTransitioning = useRef(false);
-
-  // Trigger transition when view state changes
-  useEffect(() => {
-    if (isQuizView !== prevIsQuizView.current) {
-      isTransitioning.current = true;
-      transitionTime.current = 0;
-      transitionStartPos.current.copy(camera.position);
-      transitionStartLook.current.copy(currentLookAt.current);
-      prevIsQuizView.current = isQuizView;
-    }
-  }, [isQuizView, camera]);
 
   useFrame((_, delta) => {
-    const tPos = isQuizView ? targetPos.quiz : targetPos.default;
-    const tLook = isQuizView ? targetLookAt.quiz : targetLookAt.default;
+    const target = isQuizView ? 1.0 : 0.0;
+    quizProgressRef.current = THREE.MathUtils.lerp(quizProgressRef.current, target, delta * 3.0);
+    const p = quizProgressRef.current;
 
-    if (isTransitioning.current) {
-      transitionTime.current += delta;
-      const t = Math.min(1.0, transitionTime.current / transitionDuration);
-      
-      // Easing function: Cubic easeInOut
-      const easeInOutCubic = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    // Default target camera position and lookAt (idle)
+    const defaultPos = new THREE.Vector3(0, 0, 8);
+    const defaultLook = new THREE.Vector3(0, 0, 0);
 
-      // Interpolate position and lookAt
-      camera.position.lerpVectors(transitionStartPos.current, tPos, easeInOutCubic);
-      currentLookAt.current.lerpVectors(transitionStartLook.current, tLook, easeInOutCubic);
-      camera.lookAt(currentLookAt.current);
+    // Compute dynamic quiz target camera position and lookAt
+    const bhPos = scene.userData.blackHolePosition || new THREE.Vector3(isQuizView ? -2.0 : 0, 0, 0);
+    const planetPos = scene.userData.quizPlanetPosition || new THREE.Vector3(isQuizView ? -2.0 + 1.66 : 0, 0, 0);
+    const planetAngle = scene.userData.quizPlanetAngle || 0;
 
-      if (t >= 1.0) {
-        isTransitioning.current = false;
-        camera.position.copy(tPos);
-        currentLookAt.current.copy(tLook);
-        camera.lookAt(currentLookAt.current);
-      }
-    } else {
-      camera.position.copy(tPos);
-      currentLookAt.current.copy(tLook);
-      camera.lookAt(currentLookAt.current);
-    }
+    // Dynamic disk Euler (transitioning to [0, 0, 0] at p = 1)
+    const currentX = THREE.MathUtils.lerp(Math.PI / 2.4, 0, p);
+    const currentZ = THREE.MathUtils.lerp(-Math.PI / 5, 0, p);
+    const currentEuler = new THREE.Euler(currentX, 0, currentZ);
+
+    // Camera is positioned at a 20-degree elevation relative to the orbital plane
+    // Looking towards the black hole (bhPos)
+    // Aligned with the planet's angle (offsetAngle = 0.0)
+    // Orbital radius = 3.8 (outside planet's orbit of 1.66)
+    const offsetAngle = 0.0;
+    const R_cam = 3.8;
+    const elevationRad = (20 * Math.PI) / 180;
+    const sinElev = Math.sin(elevationRad);
+    const cosElev = Math.cos(elevationRad);
+
+    const localCamPos = new THREE.Vector3(
+      Math.cos(planetAngle - offsetAngle) * R_cam * cosElev,
+      R_cam * sinElev,
+      Math.sin(planetAngle - offsetAngle) * R_cam * cosElev
+    ).applyEuler(currentEuler);
+
+    const quizPos = new THREE.Vector3().copy(bhPos).add(localCamPos);
+    const quizLook = planetPos;
+
+    // Interpolation factor: Cubic easeInOut
+    const ease = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+
+    camera.position.lerpVectors(defaultPos, quizPos, ease);
+    currentLookAt.current.lerpVectors(defaultLook, quizLook, ease);
+    camera.lookAt(currentLookAt.current);
   });
 
   return null;

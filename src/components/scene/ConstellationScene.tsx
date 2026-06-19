@@ -11,6 +11,9 @@ export const ConstellationScene: React.FC = () => {
   const { stars, loading } = useStars();
   const setConstellationIntroComplete = useSceneStore((s) => s.setConstellationIntroComplete);
   const setHasPlayedIntro = useSceneStore((s) => s.setHasPlayedIntro);
+  const appPhase = useSceneStore((s) => s.appPhase);
+  const isQuizzes = appPhase === 'quizzes';
+  const isLeaderboard = appPhase === 'leaderboard';
 
   useEffect(() => {
     setConstellationIntroComplete(true);
@@ -21,22 +24,32 @@ export const ConstellationScene: React.FC = () => {
 
   return (
     <group>
-      <MapControls
-        enableRotate={false}
-        enableZoom={true}
-        enablePan={true}
-        minDistance={4}
-        maxDistance={25}
-      />
+      {!isQuizzes && !isLeaderboard && (
+        <MapControls
+          enableRotate={false}
+          enableZoom={true}
+          enablePan={true}
+          minDistance={4}
+          maxDistance={25}
+        />
+      )}
 
-      <AnimatedConstellationLines
-        stars={stars}
-        phase={3}
-        drawProgress={1}
-      />
+      {appPhase === 'catalog' && (
+        <AnimatedConstellationLines
+          stars={stars}
+          phase={3}
+          drawProgress={1}
+        />
+      )}
 
-      {stars.map((star) => (
-        <Star key={star.id} star={star} introPhase={3} />
+      {stars.map((star, idx) => (
+        <Star
+          key={star.id}
+          star={star}
+          index={idx}
+          totalStars={stars.length}
+          introPhase={3}
+        />
       ))}
     </group>
   );

@@ -38,52 +38,14 @@ const CameraController: React.FC = () => {
   }, [cameraPosition, cameraLookAt]);
 
   const { camera } = useThree();
+  const activeStarId = useSceneStore((state) => state.activeStarId);
+  const appPhase = useSceneStore((state) => state.appPhase);
 
-  // Monitor target changes to initiate cinematic transition or snap
+  // When isTransitioning, activeStarId, or appPhase changes,
+  // snap the camera immediately to the new target.
   React.useEffect(() => {
-    if (isTransitioning) {
-      transitionActive.current = true;
-      transitionTime.current = 0;
-    } else {
-      transitionActive.current = false;
-      transitionTime.current = 0;
-      shouldSnap.current = true;
-
-      // Snap camera synchronously to target coordinate system
-      const trackedPos = useSceneStore.getState().trackedPosition;
-      let targetPosVec: THREE.Vector3;
-      let targetLookAtVec: THREE.Vector3;
-
-      if (trackedPos) {
-        const scale = 2.8;
-        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-        const lookAtOffsetX = isMobile ? 0 : -0.7;
-        const lookAtOffsetY = isMobile ? -0.7 : 0;
-        targetLookAtVec = new THREE.Vector3(
-          trackedPos[0] + lookAtOffsetX,
-          trackedPos[1] + lookAtOffsetY,
-          trackedPos[2]
-        );
-        targetPosVec = new THREE.Vector3(
-          trackedPos[0] + lookAtOffsetX,
-          trackedPos[1] + lookAtOffsetY,
-          trackedPos[2] + 3.0 / scale
-        );
-      } else {
-        targetPosVec = new THREE.Vector3(...cameraPosition);
-        targetLookAtVec = new THREE.Vector3(...cameraLookAt);
-      }
-
-      const dir = new THREE.Vector3().subVectors(targetPosVec, targetLookAtVec);
-      dir.multiplyScalar(zoomFactor.current);
-      const snapPos = new THREE.Vector3().addVectors(targetLookAtVec, dir);
-
-      camera.position.copy(snapPos);
-      camera.lookAt(targetLookAtVec);
-      currentLookAt.current.copy(targetLookAtVec);
-      targetPos.current.copy(snapPos);
-    }
-  }, [cameraPosition, cameraLookAt, isTransitioning, camera]);
+    shouldSnap.current = true;
+  }, [isTransitioning, activeStarId, appPhase]);
 
   // Bind window wheel event to handle custom scroll-to-zoom
   React.useEffect(() => {
@@ -105,26 +67,116 @@ const CameraController: React.FC = () => {
   }, []);
 
   useFrame((state, delta) => {
-    const trackedPos = useSceneStore.getState().trackedPosition;
+    // Read isTransitioning synchronously every frame — no async useEffect delay
+    const storeState = useSceneStore.getState();
+    const activelyTransitioning = storeState.isTransitioning;
+
+    if (activelyTransitioning) {
+      // ─── ACTIVE TRANSITION ────────────────────────────────────────────────
+      const { cameraPosition: storePos, cameraLookAt: storeLookAt, transitionDuration: duration } = storeState;
+
+      // For planet zoom-in: target FOLLOWS the live planet position every frame.
+      // This means the camera arrives exactly where the planet currently is when
+      // the animation ends → no jump. The orbit is slow, so the path is smooth.
+      // For all other transitions (zoom-out, star→constellation): use fixed store values.
+      const trackedPosDuringTransition = storeState.trackedPosition;
+      let targetPosVec: THREE.Vector3;
+      let targetLookAtVec: THREE.Vector3;
+
+      if (trackedPosDuringTransition) {
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+        const lookAtOffsetX = isMobile ? 0 : -0.7;
+        const lookAtOffsetY = isMobile ? -0.7 : 0;
+        const scale = 2.8;
+        targetLookAtVec = new THREE.Vector3(
+          trackedPosDuringTransition[0] + lookAtOffsetX,
+          trackedPosDuringTransition[1] + lookAtOffsetY,
+          trackedPosDuringTransition[2]
+        );
+        targetPosVec = new THREE.Vector3(
+          trackedPosDuringTransition[0] + lookAtOffsetX,
+          trackedPosDuringTransition[1] + lookAtOffsetY,
+          trackedPosDuringTransition[2] + 3.0 / scale
+        );
+      } else {
+        // Non-planet transition: fixed target (set by triggerTransition)
+        targetPosVec = new THREE.Vector3(...storePos);
+        targetLookAtVec = new THREE.Vector3(...storeLookAt);
+      }
+
+      // First frame of this transition: capture starting positions
+      if (!transitionActive.current) {
+        transitionActive.current = true;
+        transitionTime.current = 0;
+        transitionStartPos.current.copy(state.camera.position);
+        transitionStartLookAt.current.copy(currentLookAt.current);
+        shouldSnap.current = false; // don't snap while animating
+      }
+
+      transitionTime.current += delta;
+      const t = Math.min(1.0, transitionTime.current / duration);
+
+      // Cubic easeInOut
+      const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+      // Interpolate lookAt (lerp from start toward planet's live position)
+      const currentLook = new THREE.Vector3().lerpVectors(
+        transitionStartLookAt.current, targetLookAtVec, ease
+      );
+      currentLookAt.current.copy(currentLook);
+      state.camera.lookAt(currentLookAt.current);
+
+      // Interpolate distance (with cinematic pull-back on zoom-in)
+      const dStart = transitionStartPos.current.distanceTo(transitionStartLookAt.current);
+      const dTarget = targetPosVec.distanceTo(targetLookAtVec);
+      const distanceTraveled = transitionStartPos.current.distanceTo(targetPosVec);
+      const maxPullback = Math.min(3.5, 1.2 + distanceTraveled * 0.25);
+      const pullback = dTarget > dStart ? 0 : maxPullback * Math.sin(Math.PI * ease);
+      const currentDistance = THREE.MathUtils.lerp(dStart, dTarget, ease) + pullback;
+
+      // Interpolate direction
+      const dirStart = new THREE.Vector3()
+        .subVectors(transitionStartPos.current, transitionStartLookAt.current)
+        .normalize();
+      const dirTarget = new THREE.Vector3()
+        .subVectors(targetPosVec, targetLookAtVec)
+        .normalize();
+      const currentDir = new THREE.Vector3()
+        .lerpVectors(dirStart, dirTarget, ease)
+        .normalize();
+
+      state.camera.position.copy(currentLook).addScaledVector(currentDir, currentDistance);
+
+      if (t >= 1.0) {
+        // Transition complete — camera is now at the planet's live position, no jump
+        transitionActive.current = false;
+        setTransitioning(false);
+        targetPos.current.copy(targetPosVec);
+        currentLookAt.current.copy(targetLookAtVec);
+      }
+      return; // skip normal camera logic while transitioning
+    }
+
+    // ─── POST-TRANSITION / NORMAL CAMERA ────────────────────────────────────
+    if (transitionActive.current) {
+      // We just finished transitioning this frame — reset flag
+      transitionActive.current = false;
+    }
+
+    const trackedPos = storeState.trackedPosition;
     let targetPosVec: THREE.Vector3;
     let targetLookAtVec: THREE.Vector3;
 
     if (trackedPos) {
       const scale = 2.8;
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-      
-      // To make the planet appear on the RIGHT side of the screen on desktop, 
-      // the camera must look at a point to the LEFT of the planet.
       const lookAtOffsetX = isMobile ? 0 : -0.7;
-      // To make the planet appear UP on mobile, the camera must look BELOW the planet.
       const lookAtOffsetY = isMobile ? -0.7 : 0;
-
       targetLookAtVec = new THREE.Vector3(
         trackedPos[0] + lookAtOffsetX,
         trackedPos[1] + lookAtOffsetY,
         trackedPos[2]
       );
-      
       targetPosVec = new THREE.Vector3(
         trackedPos[0] + lookAtOffsetX,
         trackedPos[1] + lookAtOffsetY,
@@ -135,103 +187,37 @@ const CameraController: React.FC = () => {
       targetLookAtVec = new THREE.Vector3(...cameraLookAt);
     }
 
-    if (transitionActive.current) {
-      // First frame setup: capture initial positions
-      if (transitionTime.current === 0) {
-        transitionStartPos.current.copy(state.camera.position);
-        transitionStartLookAt.current.copy(currentLookAt.current);
-      }
+    if (storeState.appPhase === 'home') return;
 
-      transitionTime.current += delta;
-      const t = Math.min(1.0, transitionTime.current / transitionDuration);
-      
-      // Easing function: Cubic easeInOut
-      const easeInOutCubic = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-      // Interpolate lookAt target
-      const currentLook = new THREE.Vector3().lerpVectors(
-        transitionStartLookAt.current,
-        targetLookAtVec,
-        easeInOutCubic
-      );
-      currentLookAt.current.copy(currentLook);
-      state.camera.lookAt(currentLookAt.current);
-
-      // Interpolate position:
-      // 1. Distance interpolation with a cinematic pullback (anticipation)
-      const dStart = transitionStartPos.current.distanceTo(transitionStartLookAt.current);
-      const dTarget = targetPosVec.distanceTo(targetLookAtVec);
-      
-      // Sine-based zoom out curve (highest at t = 0.5, pulling back)
-      // Only apply pullback when zooming IN (dTarget < dStart) to ensure smooth, slow zoom-out
-      const distanceTraveled = transitionStartPos.current.distanceTo(targetPosVec);
-      const maxPullback = Math.min(3.5, 1.2 + distanceTraveled * 0.25);
-      const pullback = dTarget > dStart ? 0 : maxPullback * Math.sin(Math.PI * easeInOutCubic);
-      const currentDistance = THREE.MathUtils.lerp(dStart, dTarget, easeInOutCubic) + pullback;
-
-      // 2. Direction interpolation
-      const dirStart = new THREE.Vector3()
-        .subVectors(transitionStartPos.current, transitionStartLookAt.current)
-        .normalize();
-      const dirTarget = new THREE.Vector3()
-        .subVectors(targetPosVec, targetLookAtVec)
-        .normalize();
-      
-      // Interpolated direction
-      const currentDir = new THREE.Vector3()
-        .lerpVectors(dirStart, dirTarget, easeInOutCubic)
-        .normalize();
-
-      // 3. Set camera position
-      state.camera.position.copy(currentLook).addScaledVector(currentDir, currentDistance);
-
-      if (t >= 1.0) {
-        transitionActive.current = false;
-        setTransitioning(false);
-        targetPos.current.copy(targetPosVec);
-        currentLookAt.current.copy(targetLookAtVec);
-      }
-    } else {
-      const currentAppPhase = useSceneStore.getState().appPhase;
-      // In Home scene, let the scene manage itself; skip camera controller
-      if (currentAppPhase === 'home') return;
-
-      if (!useSceneStore.getState().activeStarId) {
-        if (shouldSnap.current) {
-          state.camera.position.set(0, 0, 8);
-          state.camera.lookAt(0, 0, 0);
-          currentLookAt.current.set(0, 0, 0);
-          shouldSnap.current = false;
-        } else {
-          // In Constellation scene, let MapControls handle camera
-          // Keep currentLookAt sync'ed with the panned camera position on the XY plane
-          currentLookAt.current.set(state.camera.position.x, state.camera.position.y, 0);
-        }
-        return;
-      }
-
-
-      // Normal smooth camera lerp (using zoomFactor & scroll) for Solar System / Planet View
-      const dir = new THREE.Vector3().subVectors(targetPosVec, targetLookAtVec);
-      
-      // Scale direction vector by the custom scroll zoom factor
-      dir.multiplyScalar(zoomFactor.current);
-      
-      // Set target position to targetLookAtVec + scaled direction
-      targetPos.current.addVectors(targetLookAtVec, dir);
-
+    if (!storeState.activeStarId) {
       if (shouldSnap.current) {
-        state.camera.position.copy(targetPos.current);
-        currentLookAt.current.copy(targetLookAtVec);
-        state.camera.lookAt(currentLookAt.current);
+        state.camera.position.set(0, 0, 8);
+        state.camera.lookAt(0, 0, 0);
+        currentLookAt.current.set(0, 0, 0);
         shouldSnap.current = false;
       } else {
-        state.camera.position.lerp(targetPos.current, 0.08);
-
-        // Smoothly lerp camera focal point
-        currentLookAt.current.lerp(targetLookAtVec, 0.08);
-        state.camera.lookAt(currentLookAt.current);
+        currentLookAt.current.set(state.camera.position.x, state.camera.position.y, 0);
       }
+      return;
+    }
+
+    // Solar system / planet view: smooth camera follow
+    const dir = new THREE.Vector3().subVectors(targetPosVec, targetLookAtVec);
+    dir.multiplyScalar(zoomFactor.current);
+    targetPos.current.addVectors(targetLookAtVec, dir);
+
+    if (shouldSnap.current) {
+      state.camera.position.copy(targetPos.current);
+      currentLookAt.current.copy(targetLookAtVec);
+      state.camera.lookAt(currentLookAt.current);
+      shouldSnap.current = false;
+    } else {
+      // Follow faster when tracking an active planet (keeps it on screen),
+      // slower for general star system browsing (more cinematic).
+      const lerpSpeed = storeState.activePlanetId ? 0.12 : 0.06;
+      state.camera.position.lerp(targetPos.current, lerpSpeed);
+      currentLookAt.current.lerp(targetLookAtVec, lerpSpeed);
+      state.camera.lookAt(currentLookAt.current);
     }
   });
 
@@ -291,9 +277,6 @@ export const SpaceCanvas: React.FC = () => {
   const renderScene = () => {
     if (appPhase === 'home') {
       return <HomeScene />;
-    }
-    if (activePlanetId) {
-      return <PlanetDetailScene />;
     }
     if (activeStarId) {
       return <SolarSystemScene />;

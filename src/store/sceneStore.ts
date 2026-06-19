@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type AppPhase = 'home' | 'catalog';
+export type AppPhase = 'home' | 'catalog' | 'quizzes' | 'leaderboard';
 export type HomeTransitionState = 'idle' | 'converging' | 'shooting' | 'flash' | 'done' | 'gathering' | 'supernova';
 
 interface SceneState {
@@ -57,6 +57,10 @@ interface SceneState {
   setQuizPhase: (val: 'idle' | 'spawning' | 'quiz' | 'matched' | 'done') => void;
   setMatchedPlanetId: (val: string | null) => void;
 
+  // Leaderboard states
+  leaderboardStarsLanded: boolean[];
+  setLeaderboardStarLanded: (index: number, landed: boolean) => void;
+
   resetScene: () => void;
 }
 
@@ -71,7 +75,10 @@ export const useSceneStore = create<SceneState>((set) => ({
   // App phase
   appPhase: 'home',
   homeTransitionState: 'idle',
-  setAppPhase: (phase) => set({ appPhase: phase }),
+  setAppPhase: (phase) => set({ 
+    appPhase: phase,
+    ...(phase !== 'leaderboard' ? { leaderboardStarsLanded: [false, false, false, false, false] } : {})
+  }),
   setHomeTransitionState: (state) => set({ homeTransitionState: state }),
   
   // Default values matching next-main
@@ -91,6 +98,14 @@ export const useSceneStore = create<SceneState>((set) => ({
   setQuizActive: (val) => set({ quizActive: val }),
   setQuizPhase: (val) => set({ quizPhase: val }),
   setMatchedPlanetId: (val) => set({ matchedPlanetId: val }),
+
+  // Leaderboard defaults
+  leaderboardStarsLanded: [false, false, false, false, false],
+  setLeaderboardStarLanded: (index, landed) => set((state) => {
+    const updated = [...state.leaderboardStarsLanded];
+    updated[index] = landed;
+    return { leaderboardStarsLanded: updated };
+  }),
 
   setActiveStarId: (id) => set({ activeStarId: id }),
   setActivePlanetId: (id) => set({ activePlanetId: id }),
@@ -138,7 +153,9 @@ export const useSceneStore = create<SceneState>((set) => ({
     // Reset personality quiz states
     quizActive: false,
     quizPhase: 'idle',
-    matchedPlanetId: null
+    matchedPlanetId: null,
+    // Reset leaderboard states
+    leaderboardStarsLanded: [false, false, false, false, false]
   })
 }));
 
