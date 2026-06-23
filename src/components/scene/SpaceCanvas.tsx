@@ -71,6 +71,23 @@ const CameraController: React.FC = () => {
     const storeState = useSceneStore.getState();
     const activelyTransitioning = storeState.isTransitioning;
 
+    if (storeState.activePlanetId && !activelyTransitioning) {
+      // Keep currentLookAt in sync with the tracked planet position so that
+      // zoom-out transition starts from the correct lookAt point.
+      const trackedPos = storeState.trackedPosition;
+      if (trackedPos) {
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+        const lookAtOffsetX = isMobile ? 0 : -0.7;
+        const lookAtOffsetY = isMobile ? -0.7 : 0;
+        currentLookAt.current.set(
+          trackedPos[0] + lookAtOffsetX,
+          trackedPos[1] + lookAtOffsetY,
+          trackedPos[2]
+        );
+      }
+      return;
+    }
+
     if (activelyTransitioning) {
       // ─── ACTIVE TRANSITION ────────────────────────────────────────────────
       const { cameraPosition: storePos, cameraLookAt: storeLookAt, transitionDuration: duration } = storeState;
@@ -212,12 +229,17 @@ const CameraController: React.FC = () => {
       state.camera.lookAt(currentLookAt.current);
       shouldSnap.current = false;
     } else {
-      // Follow faster when tracking an active planet (keeps it on screen),
-      // slower for general star system browsing (more cinematic).
-      const lerpSpeed = storeState.activePlanetId ? 0.12 : 0.06;
-      state.camera.position.lerp(targetPos.current, lerpSpeed);
-      currentLookAt.current.lerp(targetLookAtVec, lerpSpeed);
-      state.camera.lookAt(currentLookAt.current);
+      if (storeState.activePlanetId) {
+        // Lock camera directly to target with zero lag to prevent orbital jitter
+        state.camera.position.copy(targetPos.current);
+        currentLookAt.current.copy(targetLookAtVec);
+        state.camera.lookAt(currentLookAt.current);
+      } else {
+        const lerpSpeed = 0.06;
+        state.camera.position.lerp(targetPos.current, lerpSpeed);
+        currentLookAt.current.lerp(targetLookAtVec, lerpSpeed);
+        state.camera.lookAt(currentLookAt.current);
+      }
     }
   });
 

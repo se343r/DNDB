@@ -8,7 +8,6 @@ import { useStars } from '@/hooks/useStars';
 import { useSceneStore } from '@/store/sceneStore';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAudio } from '@/components/providers/AudioProvider';
-import { MOCK_PLANETS } from '@/lib/mockData';
 import { Html } from '@react-three/drei';
 
 interface PlanetHudProps {
@@ -32,6 +31,8 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
   const [editSpeed, setEditSpeed] = useState(1.0);
   const [editSize, setEditSize] = useState(0.5);
   const [editSeed, setEditSeed] = useState(12345);
+  const [editAvatar2, setEditAvatar2] = useState('');
+  const [editAvatar3, setEditAvatar3] = useState('');
 
   const [saving, setSaving] = useState(false);
 
@@ -59,6 +60,8 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
       setEditSpeed(planet.orbit_speed);
       setEditSize(planet.planet_size);
       setEditSeed(planet.planet_seed);
+      setEditAvatar2(planet.avatar_url_2 || '');
+      setEditAvatar3(planet.avatar_url_3 || '');
     }
   };
 
@@ -75,26 +78,20 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
       orbit_speed: Number(editSpeed),
       planet_size: Number(editSize),
       planet_seed: Number(editSeed),
-      avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${editSeed}`
+      avatar_url: `https://api.dicebear.com/7.x/bottts/svg?seed=${editSeed}`,
+      avatar_url_2: editAvatar2.trim() || null,
+      avatar_url_3: editAvatar3.trim() || null,
     };
 
     try {
-      if (isSupabaseConfigured) {
-        const { error: updateErr } = await supabase!
-          .from('planets')
-          .update(updatedData)
-          .eq('id', planetId);
+      if (!isSupabaseConfigured) throw new Error('Supabase is not configured');
 
-        if (updateErr) throw updateErr;
-      } else {
-        const localIdx = MOCK_PLANETS.findIndex((p: any) => p.id === planetId);
-        if (localIdx !== -1) {
-          MOCK_PLANETS[localIdx] = {
-            ...MOCK_PLANETS[localIdx],
-            ...updatedData
-          };
-        }
-      }
+      const { error: updateErr } = await supabase!
+        .from('planets')
+        .update(updatedData)
+        .eq('id', planetId);
+
+      if (updateErr) throw updateErr;
 
       setIsEditing(false);
       setTimeout(() => {
@@ -119,19 +116,14 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
     if (!confirmDelete) return;
 
     try {
-      if (isSupabaseConfigured) {
-        const { error: deleteErr } = await supabase!
-          .from('planets')
-          .delete()
-          .eq('id', planetId);
+      if (!isSupabaseConfigured) throw new Error('Supabase is not configured');
 
-        if (deleteErr) throw deleteErr;
-      } else {
-        const localIdx = MOCK_PLANETS.findIndex((p: any) => p.id === planetId);
-        if (localIdx !== -1) {
-          MOCK_PLANETS.splice(localIdx, 1);
-        }
-      }
+      const { error: deleteErr } = await supabase!
+        .from('planets')
+        .delete()
+        .eq('id', planetId);
+
+      if (deleteErr) throw deleteErr;
 
       setActivePlanetId(null);
       setTrackedPosition(null);
@@ -154,14 +146,13 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
       className="pointer-events-none"
     >
       <div className="relative flex items-center justify-center">
-        {/* Sci-fi Pointer Line for Avatar */}
+        {/* Sci-fi Pointer Lines for Avatars */}
         <svg 
           className="absolute left-1/2 top-1/2 overflow-visible pointer-events-none z-0" 
           style={{ width: 0, height: 0 }}
         >
-          {/* Glow effect filter */}
           <defs>
-            <filter id="glow">
+            <filter id="glow-hud">
               <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
               <feMerge>
                 <feMergeNode in="coloredBlur"/>
@@ -170,18 +161,48 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
             </filter>
           </defs>
 
-          {/* Line from planet (0,0) to Avatar (80, -120) -> (160, -120) */}
+          {/* Main line: planet center -> main avatar (right, middle) */}
           <motion.path 
             initial={{ pathLength: 0, opacity: 0 }}
             animate={{ pathLength: 1, opacity: 1 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            d={`M 0 0 L 80 -120 L 160 -120`} 
+            d={`M 0 0 L 90 -140 L 180 -140`} 
             fill="none" 
             stroke={starColor} 
             strokeWidth="1.5"
             strokeOpacity="0.8"
-            filter="url(#glow)"
+            filter="url(#glow-hud)"
           />
+          {/* Branch to top-left avatar (portrait 2) */}
+          {planet.avatar_url_2 && (
+            <motion.path 
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
+              d={`M 0 0 L -60 -200`} 
+              fill="none" 
+              stroke={starColor} 
+              strokeWidth="1"
+              strokeOpacity="0.5"
+              strokeDasharray="4 3"
+              filter="url(#glow-hud)"
+            />
+          )}
+          {/* Branch to bottom-center avatar (portrait 3) */}
+          {planet.avatar_url_3 && (
+            <motion.path 
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
+              d={`M 0 0 L 0 110`} 
+              fill="none" 
+              stroke={starColor} 
+              strokeWidth="1"
+              strokeOpacity="0.5"
+              strokeDasharray="4 3"
+              filter="url(#glow-hud)"
+            />
+          )}
           
           {/* Planet center dot */}
           <motion.circle 
@@ -189,7 +210,7 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
             animate={{ scale: 1 }}
             transition={{ delay: 0.4, type: "spring" }}
             cx="0" cy="0" r="4" fill="#ffffff" 
-            filter="url(#glow)"
+            filter="url(#glow-hud)"
           />
           <motion.circle 
             initial={{ scale: 0 }}
@@ -199,14 +220,14 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
           />
         </svg>
 
-        {/* Floating Avatar (Larger, on the Right) */}
+        {/* Main Floating Avatar (Large, centre-right) */}
         <motion.div 
-           initial={{ opacity: 0, scale: 0.8, x: 160, y: -176 }}
-           animate={{ opacity: 1, scale: 1, x: 160, y: -176 }}
-           transition={{ delay: 0.6, type: 'spring' }}
-           className="absolute pointer-events-auto left-1/2 top-1/2 flex items-center"
+           initial={{ opacity: 0, scale: 0.8, x: 100, y: -220 }}
+           animate={{ opacity: 1, scale: 1, x: 100, y: -220 }}
+           transition={{ delay: 0.55, type: 'spring' }}
+           className="absolute pointer-events-auto left-1/2 top-1/2"
         >
-           <div className="w-28 h-28 rounded-full border-[3px] bg-zinc-950 overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.6)] flex-shrink-0" style={{ borderColor: starColor }}>
+           <div className="w-40 h-40 rounded-full border-[3px] bg-zinc-950 overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.7)]" style={{ borderColor: starColor }}>
              <img 
                src={planet.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${planet.id}`} 
                alt={planet.name} 
@@ -214,6 +235,42 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
              />
            </div>
         </motion.div>
+
+        {/* Portrait Slot 2 — top-left, only if avatar_url_2 is set */}
+        {planet.avatar_url_2 && (
+          <motion.div 
+             initial={{ opacity: 0, scale: 0.6, x: -106, y: -246 }}
+             animate={{ opacity: 1, scale: 1, x: -106, y: -246 }}
+             transition={{ delay: 0.7, type: 'spring' }}
+             className="absolute pointer-events-auto left-1/2 top-1/2"
+          >
+             <div className="w-[92px] h-[92px] rounded-full border-2 bg-zinc-950 overflow-hidden shadow-[0_0_24px_rgba(0,0,0,0.6)]" style={{ borderColor: `${starColor}99` }}>
+               <img 
+                 src={planet.avatar_url_2} 
+                 alt={`${planet.name} portrait 2`} 
+                 className="w-full h-full object-cover" 
+               />
+             </div>
+          </motion.div>
+        )}
+
+        {/* Portrait Slot 3 — bottom-center, only if avatar_url_3 is set */}
+        {planet.avatar_url_3 && (
+          <motion.div 
+             initial={{ opacity: 0, scale: 0.6, x: -46, y: 64 }}
+             animate={{ opacity: 1, scale: 1, x: -46, y: 64 }}
+             transition={{ delay: 0.75, type: 'spring' }}
+             className="absolute pointer-events-auto left-1/2 top-1/2"
+          >
+             <div className="w-[92px] h-[92px] rounded-full border-2 bg-zinc-950 overflow-hidden shadow-[0_0_24px_rgba(0,0,0,0.6)]" style={{ borderColor: `${starColor}99` }}>
+               <img 
+                 src={planet.avatar_url_3} 
+                 alt={`${planet.name} portrait 3`} 
+                 className="w-full h-full object-cover" 
+               />
+             </div>
+          </motion.div>
+        )}
 
         {/* HUD Panel */}
         <div 
@@ -242,12 +299,6 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
               <h2 className="text-2xl font-black font-display text-white mt-1" style={{ textShadow: `0 0 10px ${starColor}33` }}>
                 {planet.name}
               </h2>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <button onClick={handleEditToggle} className="p-2 bg-zinc-900 hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-white transition cursor-pointer">
-                <Edit3 className="w-3.5 h-3.5" />
-              </button>
             </div>
           </div>
 
@@ -305,6 +356,14 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
                       <label className="block text-[10px] font-bold text-zinc-400 uppercase mb-1.5">Tốc độ</label>
                       <input type="number" step="0.1" value={editSpeed} onChange={(e) => setEditSpeed(Number(e.target.value))} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white" onClick={e => e.stopPropagation()}/>
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-400 uppercase mb-1.5">URL Chân Dung 2</label>
+                    <input type="text" value={editAvatar2} onChange={(e) => setEditAvatar2(e.target.value)} placeholder="https://..." className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white outline-none" onClick={e => e.stopPropagation()}/>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-zinc-400 uppercase mb-1.5">URL Chân Dung 3</label>
+                    <input type="text" value={editAvatar3} onChange={(e) => setEditAvatar3(e.target.value)} placeholder="https://..." className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white outline-none" onClick={e => e.stopPropagation()}/>
                   </div>
                 </div>
                 

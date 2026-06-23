@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { MOCK_STARS } from '@/lib/mockData';
 import { Star } from '@/lib/types';
 
 export function useStars() {
@@ -11,7 +10,8 @@ export function useStars() {
   useEffect(() => {
     async function fetchStars() {
       if (!isSupabaseConfigured) {
-        setStars(MOCK_STARS);
+        setError('Supabase is not configured');
+        setStars([]);
         setLoading(false);
         return;
       }
@@ -30,16 +30,13 @@ export function useStars() {
 
         if (dbError) throw dbError;
 
-        if (data && data.length > 0) {
+        if (data) {
           setStars(data);
-        } else {
-          // If connection succeeds but table is empty, fall back to mock data
-          setStars(MOCK_STARS);
         }
       } catch (err: any) {
-        console.warn('Supabase fetch stars error, falling back to mock data:', err.message);
+        console.error('Supabase fetch stars error:', err.message);
         setError(err.message || 'Failed to fetch stars');
-        setStars(MOCK_STARS);
+        setStars([]);
       } finally {
         setLoading(false);
       }

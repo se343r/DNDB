@@ -36,6 +36,12 @@ interface SceneState {
   trackedPosition: [number, number, number] | null;
   setTrackedPosition: (pos: [number, number, number] | null) => void;
   
+  // Search navigation states
+  searchTargetStarId: string | null;
+  searchTargetPlanetId: string | null;
+  searchNavigationStep: 'idle' | 'to_catalog' | 'to_star' | 'to_planet';
+  setSearchTarget: (starId: string | null, planetId: string | null, step: 'idle' | 'to_catalog' | 'to_star' | 'to_planet') => void;
+
   // 3D setters
   setTiltAngleX: (angle: number) => void;
   setTiltAngleY: (angle: number) => void;
@@ -60,6 +66,10 @@ interface SceneState {
   // Leaderboard states
   leaderboardStarsLanded: boolean[];
   setLeaderboardStarLanded: (index: number, landed: boolean) => void;
+
+  // Demo/Guest mode (skipped registration)
+  isDemoMode: boolean;
+  setIsDemoMode: (val: boolean) => void;
 
   resetScene: () => void;
 }
@@ -107,11 +117,25 @@ export const useSceneStore = create<SceneState>((set) => ({
     return { leaderboardStarsLanded: updated };
   }),
 
+  // Demo mode default
+  isDemoMode: false,
+  setIsDemoMode: (val) => set({ isDemoMode: val }),
+
   setActiveStarId: (id) => set({ activeStarId: id }),
   setActivePlanetId: (id) => set({ activePlanetId: id }),
   setConstellationIntroComplete: (val) => set({ constellationIntroComplete: val }),
   setHasPlayedIntro: (val) => set({ hasPlayedIntro: val }),
   
+  // Search navigation state implementation
+  searchTargetStarId: null,
+  searchTargetPlanetId: null,
+  searchNavigationStep: 'idle',
+  setSearchTarget: (starId, planetId, step) => set({
+    searchTargetStarId: starId,
+    searchTargetPlanetId: planetId,
+    searchNavigationStep: step
+  }),
+
   setCameraTarget: (position, lookAt) => set({ 
     cameraPosition: position, 
     cameraLookAt: lookAt 
@@ -155,7 +179,11 @@ export const useSceneStore = create<SceneState>((set) => ({
     quizPhase: 'idle',
     matchedPlanetId: null,
     // Reset leaderboard states
-    leaderboardStarsLanded: [false, false, false, false, false]
+    leaderboardStarsLanded: [false, false, false, false, false],
+    // Reset search states
+    searchTargetStarId: null,
+    searchTargetPlanetId: null,
+    searchNavigationStep: 'idle'
   })
 }));
 

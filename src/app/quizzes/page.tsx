@@ -2,46 +2,38 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, Check, X, Award, RotateCcw } from 'lucide-react';
+import { HelpCircle, Check, X, Award, RotateCcw, Loader2, AlertCircle } from 'lucide-react';
 import { BackButton } from '@/components/ui/BackButton';
 import { useAudio } from '@/components/providers/AudioProvider';
 import { useSceneStore } from '@/store/sceneStore';
+import { useAuth } from '@/hooks/useAuth';
 
-interface Question {
-  id: number;
-  question: string;
+interface ApiQuestion {
+  id: string;
+  question_text: string;
   options: string[];
-  correct: number;
+  difficulty: string;
+  category: string | null;
+}
+
+interface AnswerFeedback {
+  is_correct: boolean;
+  correct_index: number;
   explanation: string;
 }
 
-const QUESTIONS: Question[] = [
-  {
-    id: 1,
-    question: "Nhà vật lý nào nổi tiếng với thuyết tương đối rộng và hố đen vũ trụ?",
-    options: ["Isaac Newton", "Albert Einstein", "Stephen Hawking", "Galileo Galilei"],
-    correct: 1,
-    explanation: "Albert Einstein công bố thuyết tương đối rộng vào năm 1915, đặt nền móng lý thuyết cho việc dự đoán sự tồn tại của hố đen."
-  },
-  {
-    id: 2,
-    question: "Marie Curie là nhà khoa học duy nhất nhận giải Nobel ở hai lĩnh vực khoa học khác nhau nào?",
-    options: ["Vật lý và Hóa học", "Vật lý và Y học", "Hóa học và Sinh học", "Vật lý và Toán học"],
-    correct: 0,
-    explanation: "Marie Curie nhận giải Nobel Vật lý năm 1903 cùng chồng Pierre Curie, và giải Nobel Hóa học năm 1911 cho nghiên cứu về chất phóng xạ."
-  },
-  {
-    id: 3,
-    question: "Chòm sao Đại Hùng (Bắc Đẩu) thường được người đi biển cổ đại dùng để xác định hướng nào?",
-    options: ["Hướng Đông", "Hướng Tây", "Hướng Nam", "Hướng Bắc"],
-    correct: 3,
-    explanation: "Nhờ hai ngôi sao Dubhe và Merak ở cuối chòm sao Bắc Đẩu tạo đường thẳng chỉ thẳng vào sao Bắc Cực (Polaris) giúp xác định hướng Bắc."
-  }
-];
+interface FinishResult {
+  score: number;
+  total_questions: number;
+  points_earned: number;
+  new_total_points: number | null;
+  new_streak: number | null;
+}
 
 export default function QuizzesPage() {
   const setAppPhase = useSceneStore((state) => state.setAppPhase);
   const resetScene = useSceneStore((state) => state.resetScene);
+  const { isAuthenticated, refreshProfile } = useAuth();
 
   useEffect(() => {
     setAppPhase('quizzes');
@@ -52,46 +44,155 @@ export default function QuizzesPage() {
   }, [setAppPhase, resetScene]);
 
   const { playClick, playHover } = useAudio();
+
+  // Data state — câu hỏi tới từ server, không còn hardcode
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<ApiQuestion[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isLoadingQuiz, setIsLoadingQuiz] = useState(true);
+
+  // Play state
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
+  const [feedback, setFeedback] = useState<AnswerFeedback | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [score, setScore] = useState(0);
   const [quizComplete, setQuizComplete] = useState(false);
+  const [finishResult, setFinishResult] = useState<FinishResult | null>(null);
+  const [questionStartedAt, setQuestionStartedAt] = useState<number>(Date.now());
 
-  const handleAnswerClick = (optIdx: number) => {
-    if (isAnswered) return;
-    playClick();
-    setSelectedIdx(optIdx);
-    setIsAnswered(true);
-    if (optIdx === QUESTIONS[currentIdx].correct) {
-      setScore((s) => s + 1);
+  const loadQuiz = async () => {
+    setIsLoadingQuiz(true);
+    setLoadError(null);
+    try {
+      const res = await fetch('/api/quiz/questions?count=5');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Không tải được câu hỏi');
+
+      setSessionId(data.session_id);
+      setQuestions(data.questions);
+      setCurrentIdx(0);
+      setSelectedIdx(null);
+      setIsAnswered(false);
+      setFeedback(null);
+      setScore(0);
+      setQuizComplete(false);
+      setFinishResult(null);
+      setQuestionStartedAt(Date.now());
+    } catch (err: any) {
+      setLoadError(err.message || 'Có lỗi xảy ra khi tải câu đố');
+    } finally {
+      setIsLoadingQuiz(false);
     }
   };
 
-  const handleNext = () => {
+  useEffect(() => {
+    loadQuiz();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleAnswerClick = async (optIdx: number) => {
+    if (isAnswered || isSubmitting || !sessionId) return;
+    playClick();
+    setSelectedIdx(optIdx);
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch('/api/quiz/answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          question_id: questions[currentIdx].id,
+          selected_index: optIdx,
+          time_spent_ms: Date.now() - questionStartedAt,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Không thể gửi câu trả lời');
+
+      setFeedback(data);
+      setIsAnswered(true);
+      if (data.is_correct) setScore((s) => s + 1);
+    } catch (err: any) {
+      setLoadError(err.message || 'Có lỗi khi chấm điểm câu trả lời');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleNext = async () => {
     playClick();
     setSelectedIdx(null);
     setIsAnswered(false);
-    if (currentIdx + 1 < QUESTIONS.length) {
+    setFeedback(null);
+
+    if (currentIdx + 1 < questions.length) {
       setCurrentIdx((idx) => idx + 1);
-    } else {
-      setQuizComplete(true);
+      setQuestionStartedAt(Date.now());
+      return;
     }
+
+    // Câu cuối cùng — gọi finish để chốt điểm + cộng vào profile
+    if (sessionId) {
+      try {
+        const res = await fetch('/api/quiz/finish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setFinishResult(data);
+          if (isAuthenticated) refreshProfile();
+        }
+      } catch {
+        // Không chặn UI nếu finish thất bại — vẫn show kết quả cục bộ
+      }
+    }
+    setQuizComplete(true);
   };
 
   const handleRestart = () => {
     playClick();
-    setCurrentIdx(0);
-    setSelectedIdx(null);
-    setIsAnswered(false);
-    setScore(0);
-    setQuizComplete(false);
+    loadQuiz();
   };
+
+  if (isLoadingQuiz) {
+    return (
+      <div className="relative w-full h-full min-h-screen bg-transparent flex flex-col items-center justify-center text-white">
+        <BackButton to="/catalog" />
+        <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+        <p className="text-xs text-slate-400 mt-3">Đang tải câu đố từ vũ trụ tri thức...</p>
+      </div>
+    );
+  }
+
+  if (loadError && questions.length === 0) {
+    return (
+      <div className="relative w-full h-full min-h-screen bg-transparent flex flex-col items-center justify-center text-white p-6">
+        <BackButton to="/catalog" />
+        <div className="max-w-sm text-center flex flex-col items-center gap-3">
+          <AlertCircle className="w-8 h-8 text-rose-400" />
+          <p className="text-sm text-slate-300">{loadError}</p>
+          <button
+            onClick={loadQuiz}
+            className="mt-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full text-xs font-semibold cursor-pointer"
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const currentQuestion = questions[currentIdx];
 
   return (
     <div className="relative w-full h-full min-h-screen bg-transparent flex flex-col items-center justify-center p-6 text-white overflow-y-auto">
       <BackButton to="/catalog" />
-      
+
       <div className="w-full max-w-xl bg-slate-950/80 border border-indigo-500/20 rounded-3xl p-8 backdrop-blur-xl shadow-2xl relative z-10 pointer-events-auto">
         <AnimatePresence mode="wait">
           {!quizComplete ? (
@@ -103,39 +204,37 @@ export default function QuizzesPage() {
               transition={{ duration: 0.3 }}
               className="flex flex-col gap-6"
             >
-              {/* Progress Header */}
               <div className="flex items-center justify-between border-b border-indigo-500/10 pb-4">
                 <span className="text-[10px] tracking-widest text-indigo-400 font-mono uppercase">
-                  Câu đố tri thức {currentIdx + 1}/{QUESTIONS.length}
+                  Câu đố tri thức {currentIdx + 1}/{questions.length}
                 </span>
                 <span className="text-xs text-slate-400 font-mono">
                   Điểm số: <strong className="text-emerald-400">{score}</strong>
                 </span>
               </div>
 
-              {/* Question Text */}
               <div className="flex gap-3 items-start">
                 <HelpCircle className="w-6 h-6 text-indigo-400 shrink-0 mt-1" />
                 <h2 className="text-lg font-semibold leading-relaxed">
-                  {QUESTIONS[currentIdx].question}
+                  {currentQuestion.question_text}
                 </h2>
               </div>
 
-              {/* Choices */}
               <div className="flex flex-col gap-3">
-                {QUESTIONS[currentIdx].options.map((opt, idx) => {
-                  let btnStyle = "bg-white/5 border-white/10 hover:bg-white/10 hover:border-indigo-500/30";
+                {currentQuestion.options.map((opt, idx) => {
+                  let btnStyle =
+                    'bg-white/5 border-white/10 hover:bg-white/10 hover:border-indigo-500/30';
                   let Icon = null;
-                  
-                  if (isAnswered) {
-                    if (idx === QUESTIONS[currentIdx].correct) {
-                      btnStyle = "bg-emerald-500/20 border-emerald-500/50 text-emerald-300";
+
+                  if (isAnswered && feedback) {
+                    if (idx === feedback.correct_index) {
+                      btnStyle = 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300';
                       Icon = <Check className="w-4 h-4 text-emerald-400" />;
                     } else if (idx === selectedIdx) {
-                      btnStyle = "bg-rose-500/20 border-rose-500/50 text-rose-300";
+                      btnStyle = 'bg-rose-500/20 border-rose-500/50 text-rose-300';
                       Icon = <X className="w-4 h-4 text-rose-400" />;
                     } else {
-                      btnStyle = "bg-white/5 border-white/5 opacity-50";
+                      btnStyle = 'bg-white/5 border-white/5 opacity-50';
                     }
                   }
 
@@ -144,32 +243,34 @@ export default function QuizzesPage() {
                       key={idx}
                       onClick={() => handleAnswerClick(idx)}
                       onMouseEnter={playHover}
-                      disabled={isAnswered}
-                      className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border text-xs md:text-sm text-left transition duration-200 cursor-pointer ${btnStyle}`}
+                      disabled={isAnswered || isSubmitting}
+                      className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border text-xs md:text-sm text-left transition duration-200 cursor-pointer disabled:cursor-default ${btnStyle}`}
                     >
                       <span>{opt}</span>
                       {Icon}
+                      {isSubmitting && selectedIdx === idx && (
+                        <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                      )}
                     </button>
                   );
                 })}
               </div>
 
-              {/* Feedback and Next Trigger */}
-              {isAnswered && (
+              {isAnswered && feedback && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="flex flex-col gap-4 mt-2 bg-indigo-950/20 border border-indigo-500/10 p-4 rounded-xl"
                 >
                   <p className="text-xs text-slate-300 leading-relaxed font-light">
-                    {QUESTIONS[currentIdx].explanation}
+                    {feedback.explanation}
                   </p>
                   <button
                     onClick={handleNext}
                     onMouseEnter={playHover}
                     className="self-end px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full text-xs font-semibold cursor-pointer shadow-lg transition"
                   >
-                    Tiếp tục
+                    {currentIdx + 1 < questions.length ? 'Tiếp tục' : 'Xem kết quả'}
                   </button>
                 </motion.div>
               )}
@@ -183,21 +284,29 @@ export default function QuizzesPage() {
               <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center shadow-lg">
                 <Award className="w-8 h-8 text-indigo-400" />
               </div>
-              
+
               <div>
                 <h2 className="text-2xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-300 to-violet-400">
                   Hoàn Thành Thử Thách!
                 </h2>
                 <p className="text-slate-400 text-sm mt-2">
-                  Bạn đã xuất sắc hoàn thành bộ câu đố của tuần này.
+                  {isAuthenticated
+                    ? 'Điểm số của bạn đã được cộng vào bảng xếp hạng.'
+                    : 'Đăng nhập để lưu điểm và lên bảng xếp hạng lần sau.'}
                 </p>
               </div>
 
               <div className="px-8 py-4 bg-indigo-950/15 border border-indigo-500/10 rounded-2xl">
                 <span className="text-xs text-slate-500 block">Kết quả đạt được</span>
                 <span className="text-3xl font-black text-indigo-400 font-mono mt-1 block">
-                  {score} / {QUESTIONS.length}
+                  {score} / {questions.length}
                 </span>
+                {finishResult && finishResult.points_earned > 0 && (
+                  <span className="text-xs text-emerald-400 font-mono mt-1 block">
+                    +{finishResult.points_earned} điểm
+                    {finishResult.new_streak ? ` · chuỗi ${finishResult.new_streak} ngày` : ''}
+                  </span>
+                )}
               </div>
 
               <button
@@ -206,7 +315,7 @@ export default function QuizzesPage() {
                 className="flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs font-semibold cursor-pointer transition"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                Làm lại câu đố
+                Làm bộ câu đố mới
               </button>
             </motion.div>
           )}

@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import PlanetDetailPageClient from './PlanetDetailPageClient';
-import { MOCK_PLANETS } from '@/lib/mockData';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface PageProps {
   params: {
@@ -10,7 +10,20 @@ interface PageProps {
 
 // Generate dynamic SEO metadata for each celebrity/planet on the server
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const planet = MOCK_PLANETS.find((p) => p.id === params.planetId);
+  let planet = null;
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data } = await supabase
+        .from('planets')
+        .select('*')
+        .eq('id', params.planetId)
+        .single();
+      planet = data;
+    } catch (err) {
+      console.error('Error fetching planet metadata:', err);
+    }
+  }
 
   if (!planet) {
     return {

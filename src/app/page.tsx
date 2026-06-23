@@ -4,7 +4,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useSceneStore } from '@/store/sceneStore';
-import { MOCK_PLANETS, MOCK_STARS } from '@/lib/mockData';
+import { usePlanets } from '@/hooks/usePlanets';
+import { useStars } from '@/hooks/useStars';
 import DnbdIntro from '@/components/ui/DnbdIntro';
 
 const QUIZ_QUESTIONS = [
@@ -56,6 +57,8 @@ const QUIZ_QUESTIONS = [
 ];
 
 export default function HomePage() {
+  const { planets } = usePlanets();
+  const { stars } = useStars();
   const appPhase            = useSceneStore((s) => s.appPhase);
   const homeTransitionState = useSceneStore((s) => s.homeTransitionState);
   const setHomeTransitionState = useSceneStore((s) => s.setHomeTransitionState);
@@ -64,6 +67,22 @@ export default function HomePage() {
   const hasPlayedIntro      = useSceneStore((s) => s.hasPlayedIntro);
   const setHasPlayedIntro   = useSceneStore((s) => s.setHasPlayedIntro);
   const router              = useRouter();
+
+  // Check localStorage to skip intro on subsequent visits
+  const [skipIntro, setSkipIntro] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const visited = localStorage.getItem('dnbd_has_visited');
+      if (visited) setSkipIntro(true);
+    }
+  }, []);
+
+  const handleIntroComplete = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('dnbd_has_visited', '1');
+    }
+    setHasPlayedIntro(true);
+  };
 
   // Clean up and reset intro states when entering home page
   useEffect(() => {
@@ -110,7 +129,7 @@ export default function HomePage() {
         }
       });
 
-      const matchedPlanet = MOCK_PLANETS.find((p) => p.star_id === highestStarId);
+      const matchedPlanet = planets.find((p) => p.star_id === highestStarId) || planets[0];
       if (matchedPlanet) {
         setMatchedPlanetId(matchedPlanet.id);
         setQuizPhase('matched');
@@ -141,7 +160,7 @@ export default function HomePage() {
     if (homeTransitionState === 'done') {
       const state = useSceneStore.getState();
       if (state.quizActive && state.matchedPlanetId) {
-        const p = MOCK_PLANETS.find((planet) => planet.id === state.matchedPlanetId);
+        const p = planets.find((planet) => planet.id === state.matchedPlanetId);
         if (p) {
           state.setActiveStarId(p.star_id);
           state.setActivePlanetId(p.id);
@@ -178,14 +197,14 @@ export default function HomePage() {
   if (appPhase !== 'home') return null;
 
   // ── Intro gate ──────────────────────────────────────────────────────────────
-  if (!hasPlayedIntro) {
+  if (!hasPlayedIntro && !skipIntro) {
     return (
       <motion.div
         className="fixed inset-0 z-[200] pointer-events-auto"
         initial={{ opacity: 1 }}
         exit={{ opacity: 0 }}
       >
-        <DnbdIntro onComplete={() => setHasPlayedIntro(true)} />
+        <DnbdIntro onComplete={handleIntroComplete} />
       </motion.div>
     );
   }
@@ -419,7 +438,7 @@ export default function HomePage() {
               )}
 
               {quizPhase === 'matched' && (() => {
-                const p = MOCK_PLANETS.find((planet) => planet.id === matchedPlanetId);
+                const p = planets.find((planet) => planet.id === matchedPlanetId);
                 return (
                   <div className="flex flex-col gap-5 text-center">
                     <div className="flex flex-col items-center gap-2">
@@ -430,7 +449,7 @@ export default function HomePage() {
                         Hành Tinh {p?.name}
                       </h3>
                       <span className="text-[10px] font-mono bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-full border border-indigo-500/20 uppercase mt-1">
-                        Lĩnh vực: {p ? MOCK_STARS.find(s => s.id === p.star_id)?.name : ''}
+                        Lĩnh vực: {p ? stars.find(s => s.id === p.star_id)?.name : ''}
                       </span>
                     </div>
 

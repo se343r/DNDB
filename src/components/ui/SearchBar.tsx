@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Search, X, Loader2 } from 'lucide-react';
 import { useSearch } from '@/hooks/useSearch';
 import { useAudio } from '../providers/AudioProvider';
+import { useSceneStore } from '@/store/sceneStore';
 
 export const SearchBar: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -31,7 +32,26 @@ export const SearchBar: React.FC = () => {
     playClick();
     setIsOpen(false);
     setQuery('');
-    router.push(`/planet/${planetId}`);
+
+    const result = results.find((r) => r.planet.id === planetId);
+    if (!result) return;
+
+    const { star, planet } = result;
+    const store = useSceneStore.getState();
+
+    // 1. Set search targets and navigation step to start the sequence
+    store.setSearchTarget(star.id, planet.id, 'to_catalog');
+
+    // 2. Set app phase to catalog
+    store.setAppPhase('catalog');
+
+    // 3. Reset active star, planet, and tracking so catalog view shows first
+    store.setActiveStarId(null);
+    store.setActivePlanetId(null);
+    store.setTrackedPosition(null);
+
+    // 4. Navigate to /catalog to start the visual sequence
+    router.push('/catalog');
   };
 
   return (

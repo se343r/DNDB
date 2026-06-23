@@ -77,9 +77,43 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
       if (storeState.activePlanetId === planet.id) {
         // Update trackedPosition every frame so camera follows the orbiting planet,
         // keeping it in a fixed position on screen.
+        groupRef.current.updateWorldMatrix(true, false);
         const worldPos = new THREE.Vector3();
         groupRef.current.getWorldPosition(worldPos);
-        storeState.setTrackedPosition([worldPos.x, worldPos.y, worldPos.z]);
+
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+        const lookAtOffsetX = isMobile ? 0 : -0.7;
+        const lookAtOffsetY = isMobile ? -0.7 : 0;
+        const scale = 2.8;
+
+        // If trackedPosition is not set yet, trigger the initial camera zoom-in transition
+        if (!storeState.trackedPosition && !storeState.isTransitioning) {
+          storeState.setTransitioning(true, 1.2);
+          triggerTransition(
+            [worldPos.x + lookAtOffsetX, worldPos.y + lookAtOffsetY, worldPos.z + 3.0 / 2.8],
+            [worldPos.x + lookAtOffsetX, worldPos.y + lookAtOffsetY, worldPos.z],
+            1.2
+          );
+          storeState.setTrackedPosition([worldPos.x, worldPos.y, worldPos.z]);
+          positionSnapped.current = true;
+        } else {
+          // Standard frame-by-frame tracking
+          storeState.setTrackedPosition([worldPos.x, worldPos.y, worldPos.z]);
+
+          if (!storeState.isTransitioning) {
+            // Write coordinates immediately to the camera to eliminate 1-frame latency/jitter
+            state.camera.position.set(
+              worldPos.x + lookAtOffsetX,
+              worldPos.y + lookAtOffsetY,
+              worldPos.z + 3.0 / scale
+            );
+            state.camera.lookAt(
+              worldPos.x + lookAtOffsetX,
+              worldPos.y + lookAtOffsetY,
+              worldPos.z
+            );
+          }
+        }
       } else {
         positionSnapped.current = false;
       }
@@ -98,6 +132,7 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
 
     if (isOrbiting && groupRef.current) {
       // Get current world position of the planet
+      groupRef.current.updateWorldMatrix(true, false);
       const worldPos = new THREE.Vector3();
       groupRef.current.getWorldPosition(worldPos);
 
@@ -120,11 +155,6 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
 
       // Show PlanetHud overlay (stays in solar system scene)
       setActivePlanetId(planet.id);
-
-      // Clear transitioning flag after animation
-      setTimeout(() => {
-        setTransitioning(false);
-      }, 1200);
     } else {
       // Non-orbiting mode (PlanetDetailScene): no action needed
       setCameraTarget([0, 0, 1.8], [0, 0, 0]);

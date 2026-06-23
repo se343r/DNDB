@@ -14,6 +14,8 @@ export interface Planet {
   name: string;
   bio?: string;
   avatar_url?: string;
+  avatar_url_2?: string;
+  avatar_url_3?: string;
   orbit_radius: number;
   orbit_speed: number;
   planet_seed: number;

@@ -5,8 +5,8 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSceneStore } from '@/store/sceneStore';
+import { usePlanets } from '@/hooks/usePlanets';
 import { useStars } from '@/hooks/useStars';
-import { MOCK_STARS, MOCK_PLANETS } from '@/lib/mockData';
 import { Star as StarType } from '@/lib/types';
 import { generatePlanetCanvas } from '@/lib/planetTexture';
 
@@ -322,6 +322,7 @@ const QuizPlanet: React.FC = () => {
   const quizActive = useSceneStore((s) => s.quizActive);
   const quizPhase = useSceneStore((s) => s.quizPhase);
   const matchedPlanetId = useSceneStore((s) => s.matchedPlanetId);
+  const { planets } = usePlanets();
 
   const [texture, setTexture] = React.useState<THREE.CanvasTexture | null>(null);
   const scaleRef = useRef(0);
@@ -347,7 +348,7 @@ const QuizPlanet: React.FC = () => {
       }
     } else if (quizPhase === 'matched' && matchedPlanetId) {
       // Generate matched planet texture
-      const p = MOCK_PLANETS.find((planet) => planet.id === matchedPlanetId);
+      const p = planets.find((planet) => planet.id === matchedPlanetId);
       if (p) {
         const canvas = generatePlanetCanvas(p.planet_seed);
         if (canvas) {
@@ -360,7 +361,7 @@ const QuizPlanet: React.FC = () => {
         }
       }
     }
-  }, [quizActive, quizPhase, matchedPlanetId]);
+  }, [quizActive, quizPhase, matchedPlanetId, planets]);
 
   // Orbit angle
   const groupRef = useRef<THREE.Group>(null);
@@ -975,8 +976,9 @@ export const HomeScene: React.FC = () => {
   const glowTex = useMemo(() => typeof window !== 'undefined' ? createRadialGlow('#ffffff') : null, []);
 
   const { stars } = useStars();
+  const { planets } = usePlanets();
   const activeStars = useMemo(() => {
-    return stars && stars.length > 0 ? stars : MOCK_STARS;
+    return stars || [];
   }, [stars]);
 
   const convergeElapsed = useRef(0);

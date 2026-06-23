@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { MOCK_PLANETS, MOCK_ACHIEVEMENTS } from '@/lib/mockData';
 import { Planet, Achievement } from '@/lib/types';
 
 export function usePlanets(starId?: string | null) {
@@ -11,11 +10,8 @@ export function usePlanets(starId?: string | null) {
   useEffect(() => {
     async function fetchPlanets() {
       if (!isSupabaseConfigured) {
-        let filtered = MOCK_PLANETS;
-        if (starId) {
-          filtered = MOCK_PLANETS.filter((p) => p.star_id === starId);
-        }
-        setPlanets(filtered);
+        setError('Supabase is not configured');
+        setPlanets([]);
         setLoading(false);
         return;
       }
@@ -33,23 +29,11 @@ export function usePlanets(starId?: string | null) {
         const { data, error: dbError } = await Promise.race([query, timeoutPromise]) as any;
         if (dbError) throw dbError;
 
-        if (data && data.length > 0) {
-          setPlanets(data);
-        } else {
-          let filtered = MOCK_PLANETS;
-          if (starId) {
-            filtered = MOCK_PLANETS.filter((p) => p.star_id === starId);
-          }
-          setPlanets(filtered);
-        }
+        setPlanets(data || []);
       } catch (err: any) {
-        console.warn('Supabase fetch planets error, falling back to mock data:', err.message);
+        console.error('Supabase fetch planets error:', err.message);
         setError(err.message || 'Failed to fetch planets');
-        let filtered = MOCK_PLANETS;
-        if (starId) {
-          filtered = MOCK_PLANETS.filter((p) => p.star_id === starId);
-        }
-        setPlanets(filtered);
+        setPlanets([]);
       } finally {
         setLoading(false);
       }
@@ -72,10 +56,9 @@ export function usePlanetDetail(planetId: string) {
       if (!planetId) return;
 
       if (!isSupabaseConfigured) {
-        const mockP = MOCK_PLANETS.find((p) => p.id === planetId) || null;
-        const mockAch = MOCK_ACHIEVEMENTS.filter((a) => a.planet_id === planetId);
-        setPlanet(mockP);
-        setAchievements(mockAch);
+        setError('Supabase is not configured');
+        setPlanet(null);
+        setAchievements([]);
         setLoading(false);
         return;
       }
@@ -110,12 +93,10 @@ export function usePlanetDetail(planetId: string) {
         setPlanet(pData);
         setAchievements(achData || []);
       } catch (err: any) {
-        console.warn('Supabase fetch planet detail error, falling back to mock data:', err.message);
+        console.error('Supabase fetch planet detail error:', err.message);
         setError(err.message || 'Failed to fetch planet details');
-        const mockP = MOCK_PLANETS.find((p) => p.id === planetId) || null;
-        const mockAch = MOCK_ACHIEVEMENTS.filter((a) => a.planet_id === planetId);
-        setPlanet(mockP);
-        setAchievements(mockAch);
+        setPlanet(null);
+        setAchievements([]);
       } finally {
         setLoading(false);
       }

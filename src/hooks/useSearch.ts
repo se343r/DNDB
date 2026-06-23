@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import Fuse from 'fuse.js';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { MOCK_STARS, MOCK_PLANETS, MOCK_ACHIEVEMENTS } from '@/lib/mockData';
 import { Planet, Star } from '@/lib/types';
 
 export interface SearchItem {
@@ -18,12 +17,7 @@ export function useSearch(query: string) {
   useEffect(() => {
     async function loadSearchData() {
       if (!isSupabaseConfigured) {
-        const joined = MOCK_PLANETS.map((p) => {
-          const star = MOCK_STARS.find((s) => s.id === p.star_id) || MOCK_STARS[0];
-          const achs = MOCK_ACHIEVEMENTS.filter((a) => a.planet_id === p.id).map((a) => a.title);
-          return { planet: p, star, achievementTitles: achs };
-        });
-        setItems(joined);
+        setItems([]);
         setLoading(false);
         return;
       }
@@ -35,14 +29,8 @@ export function useSearch(query: string) {
           supabase!.from('achievements').select('planet_id, title')
         ]);
 
-        const planets: Planet[] = planetsRes.data && planetsRes.data.length > 0 
-          ? planetsRes.data 
-          : MOCK_PLANETS;
-
-        const stars: Star[] = starsRes.data && starsRes.data.length > 0 
-          ? starsRes.data 
-          : MOCK_STARS;
-
+        const planets: Planet[] = planetsRes.data || [];
+        const stars: Star[] = starsRes.data || [];
         const achievements = achRes.data || [];
 
         const joined = planets.map((p) => {
@@ -58,13 +46,8 @@ export function useSearch(query: string) {
 
         setItems(joined);
       } catch (err) {
-        console.warn('Supabase search loading error, falling back to mock data:', err);
-        const joined = MOCK_PLANETS.map((p) => {
-          const star = MOCK_STARS.find((s) => s.id === p.star_id) || MOCK_STARS[0];
-          const achs = MOCK_ACHIEVEMENTS.filter((a) => a.planet_id === p.id).map((a) => a.title);
-          return { planet: p, star, achievementTitles: achs };
-        });
-        setItems(joined);
+        console.error('Supabase search loading error:', err);
+        setItems([]);
       } finally {
         setLoading(false);
       }

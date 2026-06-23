@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Plus, Sliders, Settings } from 'lucide-react';
@@ -26,7 +26,12 @@ export default function StarPage() {
   const isTransitioning = useSceneStore((state) => state.isTransitioning);
   const setTransitioning = useSceneStore((state) => state.setTransitioning);
   const triggerTransition = useSceneStore((state) => state.triggerTransition);
-  const { playClick } = useAudio();
+  
+  const searchNavigationStep = useSceneStore((state) => state.searchNavigationStep);
+  const searchTargetPlanetId = useSceneStore((state) => state.searchTargetPlanetId);
+  const setSearchTarget = useSceneStore((state) => state.setSearchTarget);
+  
+  const { playClick, playHover } = useAudio();
 
   const handleGoBack = () => {
     playClick();
@@ -63,6 +68,8 @@ export default function StarPage() {
     return stars.find((s) => s.id === starId);
   }, [stars, starId]);
 
+  const initializedRef = useRef(false);
+
   useEffect(() => {
     if (starsLoading) return;
 
@@ -71,26 +78,33 @@ export default function StarPage() {
       return;
     }
 
-    // Don't override camera or transition if a planet animation is in progress
-    if (useSceneStore.getState().isTransitioning) return;
-    // Don't touch camera if a planet HUD is already open
-    if (useSceneStore.getState().activePlanetId) return;
+    if (initializedRef.current) return;
 
-    const posX = activeStar.position_x * 5.5;
-    const posY = activeStar.position_y * 3.5;
-
-    setCameraTarget([posX, posY - 2.8, 6.8], [posX, posY, 0]);
-    setActiveStarId(activeStar.id);
-
-    if (!planetsLoading) {
-      if (activePlanetId && planets && planets.some((p) => p.id === activePlanetId)) {
-        setTrackedPosition(null);
-      } else {
-        setActivePlanetId(null);
-      }
+    // Only set camera target if we are not navigating via search
+    const step = useSceneStore.getState().searchNavigationStep;
+    if (step !== 'to_planet') {
+      const posX = activeStar.position_x * 5.5;
+      const posY = activeStar.position_y * 3.5;
+      setCameraTarget([posX, posY - 2.8, 6.8], [posX, posY, 0]);
+      setActivePlanetId(null);
+      setTrackedPosition(null);
+      setTransitioning(false);
     }
-    setTransitioning(false);
-  }, [activeStar, starsLoading, planetsLoading, setCameraTarget, setActiveStarId, setActivePlanetId, setTransitioning, router, activePlanetId, planets, setTrackedPosition]);
+    
+    setActiveStarId(activeStar.id);
+    initializedRef.current = true;
+  }, [activeStar, starsLoading, setCameraTarget, setActiveStarId, setActivePlanetId, setTrackedPosition, setTransitioning, router]);
+
+  // Handle zoom to planet step when routing from search transition
+  useEffect(() => {
+    if (searchNavigationStep === 'to_planet' && searchTargetPlanetId) {
+      setActivePlanetId(searchTargetPlanetId);
+      setTrackedPosition(null);
+      setTransitioning(false);
+      // Clear search target step so we don't repeat this
+      setSearchTarget(null, null, 'idle');
+    }
+  }, [searchNavigationStep, searchTargetPlanetId, setActivePlanetId, setTrackedPosition, setTransitioning, setSearchTarget]);
 
   // Prefetch planet detail routes and home page for quick navigation
   useEffect(() => {
@@ -128,6 +142,7 @@ export default function StarPage() {
         <div className="flex flex-wrap items-center gap-4">
           <button
             onClick={activePlanetId ? handleClosePlanet : handleGoBack}
+            onMouseEnter={playHover}
             className="px-3 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-xl border border-zinc-800 hover:border-zinc-700 font-semibold text-xs flex items-center space-x-1.5 transition cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -165,7 +180,11 @@ export default function StarPage() {
           </span>
           <button
             type="button"
-            onClick={() => setPerspective3D(!perspective3D)}
+            onClick={() => {
+              playClick();
+              setPerspective3D(!perspective3D);
+            }}
+            onMouseEnter={playHover}
             className={`px-2 py-0.5 rounded text-[9px] font-bold font-mono transition-colors cursor-pointer ${
               perspective3D
                 ? 'bg-indigo-600 text-white hover:bg-indigo-500'

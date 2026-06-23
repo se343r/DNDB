@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Edit3, Trash2, BookOpen, Award, Calendar, Sliders, Check, Loader2 } from 'lucide-react';
@@ -9,7 +9,6 @@ import { useStars } from '@/hooks/useStars';
 import { useSceneStore } from '@/store/sceneStore';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAudio } from '@/components/providers/AudioProvider';
-import { MOCK_PLANETS } from '@/lib/mockData';
 import * as THREE from 'three';
 
 interface ClientProps {
@@ -28,6 +27,7 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
   const isTransitioning = useSceneStore((state) => state.isTransitioning);
   const setTransitioning = useSceneStore((state) => state.setTransitioning);
   const triggerTransition = useSceneStore((state) => state.triggerTransition);
+  const setTrackedPosition = useSceneStore((state) => state.setTrackedPosition);
 
   // Edit states
   const [isEditing, setIsEditing] = useState(false);
@@ -45,6 +45,8 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
     return stars.find((s) => s.id === planet.star_id);
   }, [planet, stars]);
 
+  const initializedRef = useRef(false);
+
   useEffect(() => {
     if (loading) return;
 
@@ -52,6 +54,8 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
       router.push('/');
       return;
     }
+
+    if (initializedRef.current) return;
 
     // Set active IDs so SpaceCanvas renders PlanetDetailScene with the correct planet
     setActiveStarId(planet.star_id);
@@ -67,6 +71,7 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
 
     // Clear transitioning flag (camera has already arrived)
     setTransitioning(false);
+    initializedRef.current = true;
   }, [planet, loading, setActiveStarId, setActivePlanetId, setTransitioning, router]);
 
   // Prefetch back navigation routes
@@ -83,8 +88,11 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
       const starX = parentStar.position_x * 5.5;
       const starY = parentStar.position_y * 3.5;
 
-      // Get current orbital angle of the planet
-      const angle = useSceneStore.getState().planetAngles[planet.id] || 0;
+      // Get current orbital angle of the planet (fallback to seed-based initial angle)
+      const savedAngle = useSceneStore.getState().planetAngles[planet.id];
+      const angle = savedAngle !== undefined 
+        ? savedAngle 
+        : (planet.planet_seed % 360) * (Math.PI / 180);
       const x = Math.cos(angle) * planet.orbit_radius;
       const z = Math.sin(angle) * planet.orbit_radius;
 
@@ -109,18 +117,17 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
 
       // 1. Clear planet detail → switch back to SolarSystemScene
       setActivePlanetId(null);
+      setTrackedPosition(null);
 
       // 2. Snap camera to the planet's zoomed-in position (no animation)
       setCameraTarget(zoomedInPos, zoomedInLookAt);
 
-      // 3. In next frame: trigger cinematic zoom-out to star system
-      requestAnimationFrame(() => {
-        triggerTransition([starX, starY - 2.8, 6.8], [starX, starY, 0], 1.2);
+      // 3. Trigger cinematic zoom-out to star system immediately
+      triggerTransition([starX, starY - 2.8, 6.8], [starX, starY, 0], 1.2);
 
-        setTimeout(() => {
-          router.push(`/star/${planet.star_id}`);
-        }, 1200);
-      });
+      setTimeout(() => {
+        router.push(`/star/${planet.star_id}`);
+      }, 1200);
     } else {
       router.push('/');
     }
@@ -156,23 +163,14 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
     };
 
     try {
-      if (isSupabaseConfigured) {
-        const { error: updateErr } = await supabase!
-          .from('planets')
-          .update(updatedData)
-          .eq('id', planetId);
+      if (!isSupabaseConfigured) throw new Error('Supabase is not configured');
 
-        if (updateErr) throw updateErr;
-      } else {
-        // Local simulation update
-        const localIdx = MOCK_PLANETS.findIndex((p: any) => p.id === planetId);
-        if (localIdx !== -1) {
-          MOCK_PLANETS[localIdx] = {
-            ...MOCK_PLANETS[localIdx],
-            ...updatedData
-          };
-        }
-      }
+      const { error: updateErr } = await supabase!
+        .from('planets')
+        .update(updatedData)
+        .eq('id', planetId);
+
+      if (updateErr) throw updateErr;
 
       setIsEditing(false);
       if (typeof window !== 'undefined') {
@@ -196,20 +194,14 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
     if (!confirmDelete) return;
 
     try {
-      if (isSupabaseConfigured) {
-        const { error: deleteErr } = await supabase!
-          .from('planets')
-          .delete()
-          .eq('id', planetId);
+      if (!isSupabaseConfigured) throw new Error('Supabase is not configured');
 
-        if (deleteErr) throw deleteErr;
-      } else {
-        // Local simulation deletion
-        const localIdx = MOCK_PLANETS.findIndex((p: any) => p.id === planetId);
-        if (localIdx !== -1) {
-          MOCK_PLANETS.splice(localIdx, 1);
-        }
-      }
+      const { error: deleteErr } = await supabase!
+        .from('planets')
+        .delete()
+        .eq('id', planetId);
+
+      if (deleteErr) throw deleteErr;
 
       router.push(`/star/${planet.star_id}`);
     } catch (err) {
@@ -262,18 +254,6 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
 
         {/* Edit & delete buttons */}
         <div className="flex items-center space-x-2">
-          <button
-            onClick={handleEditToggle}
-            className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center space-x-1 cursor-pointer transition ${
-              isEditing
-                ? 'bg-amber-500/15 border-amber-400/40 text-amber-300'
-                : 'bg-zinc-900 text-zinc-300 border-zinc-800 hover:border-zinc-700'
-            }`}
-          >
-            <Edit3 className="w-3.5 h-3.5" />
-            <span>{isEditing ? 'Hủy Sửa' : 'Sửa tinh cầu'}</span>
-          </button>
-
           <button
             onClick={handleDelete}
             className="px-3 py-1.5 bg-zinc-900 hover:bg-rose-950/30 text-rose-400 hover:text-rose-300 rounded-xl border border-zinc-800 hover:border-rose-900/30 text-xs font-bold flex items-center space-x-1 cursor-pointer transition"

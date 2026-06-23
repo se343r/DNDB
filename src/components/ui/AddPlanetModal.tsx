@@ -5,7 +5,7 @@ import { X, Loader2, Check } from 'lucide-react';
 import { useSceneStore } from '@/store/sceneStore';
 import { useAudio } from '../providers/AudioProvider';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { MOCK_STARS, MOCK_PLANETS } from '@/lib/mockData';
+import { useStars } from '@/hooks/useStars';
 
 export const AddPlanetModal: React.FC = () => {
   const isAddModalOpen = useSceneStore((state) => state.isAddModalOpen);
@@ -14,7 +14,7 @@ export const AddPlanetModal: React.FC = () => {
 
   // Form states
   const [name, setName] = useState('');
-  const [selectedStarId, setSelectedStarId] = useState(MOCK_STARS[0].id);
+  const [selectedStarId, setSelectedStarId] = useState('');
   const [bio, setBio] = useState('');
   const [radius, setRadius] = useState(3.5);
   const [speed, setSpeed] = useState(1.0);
@@ -25,13 +25,19 @@ export const AddPlanetModal: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const { stars } = useStars();
+
   // Sync selected star with currently viewed star system when modal opens
   const activeStarId = useSceneStore((state) => state.activeStarId);
   React.useEffect(() => {
-    if (isAddModalOpen && activeStarId) {
-      setSelectedStarId(activeStarId);
+    if (isAddModalOpen) {
+      if (activeStarId) {
+        setSelectedStarId(activeStarId);
+      } else if (stars.length > 0 && !selectedStarId) {
+        setSelectedStarId(stars[0].id);
+      }
     }
-  }, [isAddModalOpen, activeStarId]);
+  }, [isAddModalOpen, activeStarId, stars, selectedStarId]);
 
   if (!isAddModalOpen) return null;
 
@@ -73,23 +79,13 @@ export const AddPlanetModal: React.FC = () => {
     };
 
     try {
-      if (isSupabaseConfigured) {
-        const { error: insertErr } = await supabase!
-          .from('planets')
-          .insert([planetData]);
+      if (!isSupabaseConfigured) throw new Error('Supabase is not configured');
 
-        if (insertErr) throw insertErr;
-      } else {
-        // Local simulation delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        console.log('Supabase not configured. Simulated planet creation:', planetData);
-        
-        // Push locally in memory for preview
-        MOCK_PLANETS.push({
-          id: `local-${seed}`,
-          ...planetData
-        });
-      }
+      const { error: insertErr } = await supabase!
+        .from('planets')
+        .insert([planetData]);
+
+      if (insertErr) throw insertErr;
 
       setSuccess(true);
       setTimeout(() => {
@@ -168,7 +164,7 @@ export const AddPlanetModal: React.FC = () => {
                   onChange={(e) => setSelectedStarId(e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 transition-colors cursor-pointer"
                 >
-                  {MOCK_STARS.map((star) => (
+                  {stars.map((star) => (
                     <option key={star.id} value={star.id}>
                       {star.icon} {star.name}
                     </option>
@@ -257,6 +253,7 @@ export const AddPlanetModal: React.FC = () => {
                     playClick();
                     setSeed(Math.floor(Math.random() * 90000) + 10000);
                   }}
+                  onMouseEnter={playHover}
                   className="px-3 py-2 bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-xs rounded-xl text-white cursor-pointer"
                 >
                   Gen Ngẫu Nhiên
@@ -268,6 +265,7 @@ export const AddPlanetModal: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
+              onMouseEnter={playHover}
               className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white rounded-xl text-xs font-bold font-display flex items-center justify-center space-x-2 cursor-pointer shadow-lg shadow-indigo-500/10 transition-colors"
             >
               {loading ? (

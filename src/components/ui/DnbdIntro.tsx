@@ -2,6 +2,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, LogIn } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useSceneStore } from '@/store/sceneStore';
 
 interface DnbdIntroProps {
   onComplete: () => void;
@@ -9,6 +12,7 @@ interface DnbdIntroProps {
 
 type IntroPhase =
   | 'pre_calibration'   // Initial screen – "Kết nối bản đồ tri thức"
+  | 'register_gate'     // Auth gate – đăng ký bắt buộc
   | 'calibrating'       // Progress bar + log messages
   | 'ready'             // "KHÁM PHÁ VŨ TRỤ" button
   | 'voice_trigger'     // "Danh Nhân Bắc Đẩu!" flash text
@@ -24,6 +28,19 @@ export default function DnbdIntro({ onComplete }: DnbdIntroProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animFrameId = useRef<number | null>(null);
   const phaseStartTime = useRef<number>(Date.now());
+
+  // Auth
+  const { isAuthenticated, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+  const setIsDemoMode = useSceneStore((s) => s.setIsDemoMode);
+
+  // Register gate state
+  const [authMode, setAuthMode] = useState<'signup' | 'signin'>('signup');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regName, setRegName] = useState('');
+  const [regStudentId, setRegStudentId] = useState('');
+  const [regLoading, setRegLoading] = useState(false);
+  const [regError, setRegError] = useState<string | null>(null);
 
   useEffect(() => {
     phaseStartTime.current = Date.now();
@@ -331,7 +348,14 @@ export default function DnbdIntro({ onComplete }: DnbdIntroProps) {
 
             <button
               id="btn-init-dnbd"
-              onClick={() => setPhase('calibrating')}
+              onClick={() => {
+                if (isAuthenticated) {
+                  setPhase('calibrating');
+                } else {
+                  setRegError(null);
+                  setPhase('register_gate');
+                }
+              }}
               className="w-full py-3.5 px-6 font-mono text-xs uppercase tracking-widest rounded border border-indigo-800/60 hover:border-indigo-500 bg-indigo-950/40 hover:bg-indigo-900/30 text-slate-200 hover:text-white transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer focus:outline-none"
             >
               <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
@@ -340,8 +364,146 @@ export default function DnbdIntro({ onComplete }: DnbdIntroProps) {
           </motion.div>
         )}
 
+        {/* ── Phase 1.5: Register Gate ──────────────────────────────────── */}
+        {phase === 'register_gate' && (
+          <motion.div
+            key="register_gate"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.5 }}
+            className="z-10 w-full max-w-sm px-6"
+          >
+            {/* Header */}
+            <div className="text-center mb-6">
+              <p className="text-[10px] font-mono text-indigo-500 uppercase tracking-[0.4em] mb-2">Xác thực danh tính</p>
+              <h2 className="text-lg font-bold text-white leading-tight">
+                Trước khi tiếp cận vũ trụ tri thức
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">Tạo tài khoản để lưu tiến trình và lên bảng xếp hạng</p>
+            </div>
+
+            {/* Tab toggle */}
+            <div className="flex rounded-lg border border-slate-800 overflow-hidden mb-5">
+              <button
+                onClick={() => { setAuthMode('signup'); setRegError(null); }}
+                className={`flex-1 py-2 text-[11px] font-mono uppercase tracking-widest transition-colors cursor-pointer ${authMode === 'signup' ? 'bg-indigo-900/60 text-indigo-300' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                Tạo tài khoản
+              </button>
+              <button
+                onClick={() => { setAuthMode('signin'); setRegError(null); }}
+                className={`flex-1 py-2 text-[11px] font-mono uppercase tracking-widest transition-colors cursor-pointer ${authMode === 'signin' ? 'bg-indigo-900/60 text-indigo-300' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                Đăng nhập
+              </button>
+            </div>
+
+            {/* Google OAuth */}
+            <button
+              onClick={async () => { await signInWithGoogle(); }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 mb-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-white cursor-pointer transition"
+            >
+              <LogIn className="w-4 h-4" />
+              Tiếp tục với Google
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-[10px] text-slate-500 font-mono uppercase">hoặc</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+
+            {/* Error */}
+            {regError && (
+              <div className="mb-3 p-2.5 bg-rose-950/30 border border-rose-500/20 rounded-lg text-[11px] text-rose-400">
+                {regError}
+              </div>
+            )}
+
+            {/* Form */}
+            <form
+              className="flex flex-col gap-3"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setRegLoading(true);
+                setRegError(null);
+                let result;
+                if (authMode === 'signup') {
+                  result = await signUpWithEmail(regEmail, regPassword, regName || regEmail.split('@')[0], regStudentId);
+                } else {
+                  result = await signInWithEmail(regEmail, regPassword);
+                }
+                setRegLoading(false);
+                if (result?.error) {
+                  setRegError(result.error);
+                  return;
+                }
+                setPhase('calibrating');
+              }}
+            >
+              {authMode === 'signup' && (
+                <>
+                  <input
+                    type="text"
+                    required
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    placeholder="Tên hiển thị"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 transition-colors"
+                  />
+                  <input
+                    type="text"
+                    value={regStudentId}
+                    onChange={(e) => setRegStudentId(e.target.value)}
+                    placeholder="Mã số sinh viên (không bắt buộc)"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 transition-colors"
+                  />
+                </>
+              )}
+              <input
+                type="email"
+                required
+                value={regEmail}
+                onChange={(e) => setRegEmail(e.target.value)}
+                placeholder="Email"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 transition-colors"
+              />
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={regPassword}
+                onChange={(e) => setRegPassword(e.target.value)}
+                placeholder="Mật khẩu (tối thiểu 6 ký tự)"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 transition-colors"
+              />
+              <button
+                type="submit"
+                disabled={regLoading}
+                className="w-full mt-1 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
+              >
+                {regLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {authMode === 'signup' ? 'Tạo tài khoản & Kết nối' : 'Đăng nhập & Kết nối'}
+              </button>
+            </form>
+
+            {/* Demo skip */}
+            <button
+              onClick={() => {
+                setIsDemoMode(true);
+                setPhase('calibrating');
+              }}
+              className="w-full mt-4 text-[10px] text-center text-slate-600 hover:text-slate-400 cursor-pointer transition font-mono uppercase tracking-widest"
+            >
+              Chỉ xem thử — vào chế độ Demo
+            </button>
+          </motion.div>
+        )}
+
         {/* ── Phase 2: Calibrating ──────────────────────────────────────── */}
         {phase === 'calibrating' && (
+
           <motion.div
             key="calibrating"
             initial={{ opacity: 0 }}
@@ -595,7 +757,14 @@ export default function DnbdIntro({ onComplete }: DnbdIntroProps) {
 
 // ── Static background star field (lightweight, CSS only) ─────────────────────
 function StaticStarField() {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const stars = React.useMemo(() => {
+    if (!mounted) return [];
     return Array.from({ length: 120 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
@@ -605,7 +774,9 @@ function StaticStarField() {
       delay: Math.random() * 4,
       duration: 2 + Math.random() * 3,
     }));
-  }, []);
+  }, [mounted]);
+
+  if (!mounted) return null;
 
   return (
     <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
