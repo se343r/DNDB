@@ -6,6 +6,7 @@ import { SpaceCanvas } from "@/components/scene/SpaceCanvas";
 import { Header } from "@/components/ui/Header";
 import { AddPlanetModal } from "@/components/ui/AddPlanetModal";
 import { NebulaBackground } from "@/components/ui/NebulaBackground";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -63,6 +64,7 @@ export default function RootLayout({
           {/* Creator modal overlay */}
           <AddPlanetModal />
         </AudioProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
