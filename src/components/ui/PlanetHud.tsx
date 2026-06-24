@@ -1,20 +1,20 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Edit3, Trash2, Award, Check, Loader2, X } from 'lucide-react';
 import { usePlanetDetail } from '@/hooks/usePlanets';
 import { useStars } from '@/hooks/useStars';
 import { useSceneStore } from '@/store/sceneStore';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useAudio } from '@/components/providers/AudioProvider';
-import { Html } from '@react-three/drei';
 
 interface PlanetHudProps {
   planetId: string;
+  onClose?: () => void;
 }
 
-export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
+export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId, onClose }) => {
   const { planet, achievements, loading } = usePlanetDetail(planetId);
   const { stars } = useStars();
   const { playClick } = useAudio();
@@ -22,6 +22,7 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
   const setActivePlanetId = useSceneStore((state) => state.setActivePlanetId);
   const setTrackedPosition = useSceneStore((state) => state.setTrackedPosition);
   const setTransitioning = useSceneStore((state) => state.setTransitioning);
+  const isTransitioning = useSceneStore((state) => state.isTransitioning);
 
   // Edit states
   const [isEditing, setIsEditing] = useState(false);
@@ -36,6 +37,14 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
 
   const [saving, setSaving] = useState(false);
 
+  const [isMobile, setIsMobile] = useState(false);
+  React.useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const parentStar = useMemo(() => {
     if (!planet) return null;
     return stars.find((s) => s.id === planet.star_id);
@@ -43,6 +52,11 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
 
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (onClose) {
+      onClose();
+      return;
+    }
+    // Fallback if no onClose is provided
     playClick();
     setTransitioning(true);
     setActivePlanetId(null);
@@ -140,248 +154,144 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId }) => {
   const starColor = parentStar.color;
 
   return (
-    <Html 
-      center 
-      zIndexRange={[100, 0]}
-      className="pointer-events-none"
-    >
-      <div className="relative flex items-center justify-center">
-        {/* Sci-fi Pointer Lines for Avatars */}
-        <svg 
-          className="absolute left-1/2 top-1/2 overflow-visible pointer-events-none z-0" 
-          style={{ width: 0, height: 0 }}
-        >
-          <defs>
-            <filter id="glow-hud">
-              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-
-          {/* Main line: planet center -> main avatar (right, middle) */}
-          <motion.path 
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            d={`M 0 0 L 90 -140 L 180 -140`} 
-            fill="none" 
-            stroke={starColor} 
-            strokeWidth="1.5"
-            strokeOpacity="0.8"
-            filter="url(#glow-hud)"
-          />
-          {/* Branch to top-left avatar (portrait 2) */}
-          {planet.avatar_url_2 && (
-            <motion.path 
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
-              d={`M 0 0 L -60 -200`} 
-              fill="none" 
-              stroke={starColor} 
-              strokeWidth="1"
-              strokeOpacity="0.5"
-              strokeDasharray="4 3"
-              filter="url(#glow-hud)"
-            />
-          )}
-          {/* Branch to bottom-center avatar (portrait 3) */}
-          {planet.avatar_url_3 && (
-            <motion.path 
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
-              d={`M 0 0 L 0 110`} 
-              fill="none" 
-              stroke={starColor} 
-              strokeWidth="1"
-              strokeOpacity="0.5"
-              strokeDasharray="4 3"
-              filter="url(#glow-hud)"
-            />
-          )}
-          
-          {/* Planet center dot */}
-          <motion.circle 
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.4, type: "spring" }}
-            cx="0" cy="0" r="4" fill="#ffffff" 
-            filter="url(#glow-hud)"
-          />
-          <motion.circle 
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.5, type: "spring" }}
-            cx="0" cy="0" r="8" fill="none" stroke={starColor} strokeWidth="1"
-          />
-        </svg>
-
-        {/* Main Floating Avatar (Large, centre-right) */}
-        <motion.div 
-           initial={{ opacity: 0, scale: 0.8, x: 100, y: -220 }}
-           animate={{ opacity: 1, scale: 1, x: 100, y: -220 }}
-           transition={{ delay: 0.55, type: 'spring' }}
-           className="absolute pointer-events-auto left-1/2 top-1/2"
-        >
-           <div className="w-40 h-40 rounded-full border-[3px] bg-zinc-950 overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.7)]" style={{ borderColor: starColor }}>
-             <img 
-               src={planet.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${planet.id}`} 
-               alt={planet.name} 
-               className="w-full h-full object-cover" 
-             />
-           </div>
-        </motion.div>
-
-        {/* Portrait Slot 2 — top-left, only if avatar_url_2 is set */}
-        {planet.avatar_url_2 && (
+    <div className="fixed inset-0 z-[100] pointer-events-none">
+      <AnimatePresence>
+        {!isTransitioning && (
           <motion.div 
-             initial={{ opacity: 0, scale: 0.6, x: -106, y: -246 }}
-             animate={{ opacity: 1, scale: 1, x: -106, y: -246 }}
-             transition={{ delay: 0.7, type: 'spring' }}
-             className="absolute pointer-events-auto left-1/2 top-1/2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+            className="pointer-events-auto w-full h-full bg-zinc-950/85 backdrop-blur-xl flex flex-col"
           >
-             <div className="w-[92px] h-[92px] rounded-full border-2 bg-zinc-950 overflow-hidden shadow-[0_0_24px_rgba(0,0,0,0.6)]" style={{ borderColor: `${starColor}99` }}>
-               <img 
-                 src={planet.avatar_url_2} 
-                 alt={`${planet.name} portrait 2`} 
-                 className="w-full h-full object-cover" 
-               />
-             </div>
-          </motion.div>
-        )}
+            {/* Top Navigation Bar (Fixed at top) */}
+            <div className="flex-none flex justify-between items-center px-4 py-4 md:px-8 md:py-6 bg-gradient-to-b from-zinc-950/90 to-transparent">
+              <button 
+                onClick={handleClose} 
+                className="flex items-center gap-2 text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 px-5 py-2.5 rounded-full backdrop-blur-md transition border border-white/10 cursor-pointer shadow-lg"
+              >
+                <X className="w-5 h-5" />
+                <span className="font-semibold text-sm">Trở lại quỹ đạo</span>
+              </button>
+              
 
-        {/* Portrait Slot 3 — bottom-center, only if avatar_url_3 is set */}
-        {planet.avatar_url_3 && (
-          <motion.div 
-             initial={{ opacity: 0, scale: 0.6, x: -46, y: 64 }}
-             animate={{ opacity: 1, scale: 1, x: -46, y: 64 }}
-             transition={{ delay: 0.75, type: 'spring' }}
-             className="absolute pointer-events-auto left-1/2 top-1/2"
-          >
-             <div className="w-[92px] h-[92px] rounded-full border-2 bg-zinc-950 overflow-hidden shadow-[0_0_24px_rgba(0,0,0,0.6)]" style={{ borderColor: `${starColor}99` }}>
-               <img 
-                 src={planet.avatar_url_3} 
-                 alt={`${planet.name} portrait 3`} 
-                 className="w-full h-full object-cover" 
-               />
-             </div>
-          </motion.div>
-        )}
-
-        {/* HUD Panel */}
-        <div 
-          className="pointer-events-auto w-screen h-[70vh] md:h-[85vh] flex flex-col justify-end md:justify-center md:relative md:w-[720px] xl:w-[840px] z-10"
-          // On mobile, it's a bottom sheet. On desktop, it's translated heavily to the left.
-          style={{ transform: 'translate(min(-105%, -20vw), 0)' }}
-        >
-        <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          transition={{ duration: 0.4 }}
-          className="w-full max-h-full bg-zinc-950/90 backdrop-blur-2xl rounded-t-[2rem] md:rounded-[2rem] border border-zinc-800 shadow-[0_0_50px_rgba(0,0,0,0.5)] p-6 md:p-10 flex flex-col overflow-hidden"
-        >
-          {/* Header */}
-          <div className="flex justify-between items-start mb-4 flex-shrink-0">
-            <div>
-              <div className="flex items-center space-x-2">
-                <span 
-                  className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold font-display"
-                  style={{ backgroundColor: `${starColor}15`, color: starColor }}
-                >
-                  {parentStar.name}
-                </span>
-              </div>
-              <h2 className="text-2xl font-black font-display text-white mt-1" style={{ textShadow: `0 0 10px ${starColor}33` }}>
-                {planet.name}
-              </h2>
             </div>
-          </div>
 
-          <div className="overflow-y-auto scrollbar-thin flex-1 pr-2">
-            {!isEditing ? (
-              <div className="space-y-6">
-                <p className="text-sm text-zinc-300 leading-relaxed text-justify bg-zinc-900/40 p-5 rounded-xl border border-zinc-800/50 shadow-inner">
-                  {planet.bio || 'Chưa có thông tin chi tiết.'}
-                </p>
-
-                {achievements.length > 0 && (
-                  <div className="space-y-4 mt-6">
-                    <div className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center">
-                      <Award className="w-5 h-5 text-indigo-400 mr-2" />
-                      <span>Di sản lưu danh</span>
-                    </div>
-                    <div className="space-y-3">
-                      {achievements.map((ach, idx) => (
-                        <div key={ach.id} className="p-4 bg-zinc-900/30 border border-zinc-800/50 rounded-xl flex items-start space-x-3 shadow-sm hover:bg-zinc-900/50 transition">
-                          <div className="w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center flex-shrink-0 border" style={{ borderColor: `${starColor}33`, color: starColor, backgroundColor: `${starColor}08` }}>
-                            {idx + 1}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-center mb-1.5">
-                              <h4 className="text-sm font-semibold text-white">{ach.title}</h4>
-                              <span className="text-[11px] text-zinc-500 bg-zinc-900 px-2.5 py-0.5 rounded font-mono">
-                                {ach.year ? (ach.year > 0 ? ach.year : `TCN ${Math.abs(ach.year)}`) : ''}
-                              </span>
-                            </div>
-                            {ach.description && <p className="text-xs text-zinc-400 mt-2 leading-relaxed">{ach.description}</p>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <form onSubmit={handleSave} className="space-y-4">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-[10px] font-bold text-zinc-400 uppercase mb-1.5">Tên Nhân Vật</label>
-                    <input type="text" required value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white outline-none" onClick={e => e.stopPropagation()}/>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-zinc-400 uppercase mb-1.5">Tiểu Sử</label>
-                    <textarea rows={5} value={editBio} onChange={(e) => setEditBio(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white outline-none resize-none" onClick={e => e.stopPropagation()}/>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[10px] font-bold text-zinc-400 uppercase mb-1.5">Quỹ đạo</label>
-                      <input type="number" step="0.1" value={editRadius} onChange={(e) => setEditRadius(Number(e.target.value))} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white" onClick={e => e.stopPropagation()}/>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-bold text-zinc-400 uppercase mb-1.5">Tốc độ</label>
-                      <input type="number" step="0.1" value={editSpeed} onChange={(e) => setEditSpeed(Number(e.target.value))} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white" onClick={e => e.stopPropagation()}/>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-zinc-400 uppercase mb-1.5">URL Chân Dung 2</label>
-                    <input type="text" value={editAvatar2} onChange={(e) => setEditAvatar2(e.target.value)} placeholder="https://..." className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white outline-none" onClick={e => e.stopPropagation()}/>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-zinc-400 uppercase mb-1.5">URL Chân Dung 3</label>
-                    <input type="text" value={editAvatar3} onChange={(e) => setEditAvatar3(e.target.value)} placeholder="https://..." className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white outline-none" onClick={e => e.stopPropagation()}/>
-                  </div>
-                </div>
+            {/* Scrollable Main Content Area */}
+            <div className="flex-1 w-full overflow-y-auto">
+              <div className="max-w-4xl mx-auto px-6 py-8 md:py-12 flex flex-col items-center">
                 
-                <div className="flex gap-3 mt-6 pt-2">
-                  <button type="button" onClick={handleDelete} className="px-4 py-2.5 bg-rose-950/40 text-rose-400 rounded-xl text-sm font-bold transition hover:bg-rose-900/60 flex items-center justify-center" onClickCapture={e => e.stopPropagation()}>
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                  <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold flex items-center justify-center space-x-2 shadow-lg shadow-indigo-900/20" onClickCapture={e => e.stopPropagation()}>
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                    <span>Lưu thay đổi</span>
-                  </button>
+                {/* Avatar */}
+              <div 
+                className="w-32 h-32 md:w-56 md:h-56 rounded-full border-[4px] bg-zinc-950 overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.5)] mb-8" 
+                style={{ borderColor: starColor }}
+              >
+                <img 
+                  src={planet.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${planet.id}`} 
+                  alt={planet.name} 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+
+              <span 
+                className="inline-block px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-4"
+                style={{ backgroundColor: `${starColor}15`, color: starColor }}
+              >
+                {parentStar.name}
+              </span>
+              
+              <h1 
+                className="text-4xl md:text-6xl lg:text-7xl font-black font-display text-white text-center mb-10" 
+                style={{ textShadow: `0 0 30px ${starColor}44` }}
+              >
+                {planet.name}
+              </h1>
+
+              {!isEditing ? (
+                <div className="w-full">
+                  <div className="bg-white/5 border border-white/5 rounded-3xl p-6 md:p-10 mb-12 shadow-2xl">
+                    <p className="text-base md:text-lg text-zinc-300 leading-relaxed text-justify md:text-left font-light">
+                      {planet.bio || 'Chưa có thông tin chi tiết.'}
+                    </p>
+                  </div>
+                  
+                  {achievements.length > 0 && (
+                    <div className="w-full mb-20">
+                      <div className="flex items-center gap-3 mb-8 border-b border-white/10 pb-4">
+                        <Award className="w-6 h-6 text-indigo-400" />
+                        <h3 className="text-xl font-bold text-white uppercase tracking-wider font-display">Di sản lưu danh</h3>
+                      </div>
+                      
+                      <div className="space-y-6 relative border-l-2 border-white/10 pl-6 ml-3">
+                        {achievements.map((ach, idx) => (
+                          <div key={ach.id} className="relative group">
+                            {/* Timeline dot */}
+                            <span 
+                              className="absolute -left-[35px] top-1.5 w-4 h-4 rounded-full bg-zinc-950 border-2 transition-transform group-hover:scale-125" 
+                              style={{ borderColor: starColor }} 
+                            />
+                            
+                            <div className="bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-2xl p-6 transition duration-300">
+                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+                                <h4 className="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">{ach.title}</h4>
+                                {ach.year !== undefined && (
+                                  <span className="inline-block w-fit text-xs font-bold text-zinc-400 bg-zinc-900 px-3 py-1 rounded-md font-mono">
+                                    {ach.year > 0 ? ach.year : `TCN ${Math.abs(ach.year)}`}
+                                  </span>
+                                )}
+                              </div>
+                              {ach.description && <p className="text-sm text-zinc-400 leading-relaxed">{ach.description}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </form>
-            )}
-          </div>
-        </motion.div>
-      </div>
-      </div>
-    </Html>
+              ) : (
+                <form onSubmit={handleSave} className="w-full bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-3xl p-6 md:p-10 space-y-6 mb-20">
+                  <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2"><Edit3 className="w-5 h-5"/> Chỉnh sửa dữ liệu</h3>
+                    <button type="button" onClick={handleEditToggle} className="text-zinc-500 hover:text-white transition"><X className="w-5 h-5"/></button>
+                  </div>
+
+                  <div className="space-y-5">
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Tên Nhân Vật</label>
+                      <input type="text" required value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-indigo-500 transition" onClick={e => e.stopPropagation()}/>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Tiểu Sử</label>
+                      <textarea rows={8} value={editBio} onChange={(e) => setEditBio(e.target.value)} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-indigo-500 transition resize-none leading-relaxed" onClick={e => e.stopPropagation()}/>
+                    </div>
+                    <div className="grid grid-cols-2 gap-5">
+                      <div>
+                        <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Bán kính quỹ đạo</label>
+                        <input type="number" step="0.1" value={editRadius} onChange={(e) => setEditRadius(Number(e.target.value))} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white" onClick={e => e.stopPropagation()}/>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Tốc độ quỹ đạo</label>
+                        <input type="number" step="0.1" value={editSpeed} onChange={(e) => setEditSpeed(Number(e.target.value))} className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-white" onClick={e => e.stopPropagation()}/>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-4 mt-8 pt-4 border-t border-zinc-800">
+                    <button type="button" onClick={handleDelete} className="px-6 py-3 bg-rose-950/40 text-rose-400 rounded-xl text-sm font-bold transition hover:bg-rose-900/60 flex items-center justify-center border border-rose-900/50" onClickCapture={e => e.stopPropagation()}>
+                      <Trash2 className="w-4 h-4 mr-2" /> Xoá Danh Nhân
+                    </button>
+                    <button type="submit" disabled={saving} className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold flex items-center justify-center space-x-2 shadow-lg shadow-indigo-900/20" onClickCapture={e => e.stopPropagation()}>
+                      {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                      <span>Lưu tất cả thay đổi</span>
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };

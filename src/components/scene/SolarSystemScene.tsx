@@ -12,6 +12,7 @@ export const SolarSystemScene: React.FC = () => {
   const tiltAngleX = useSceneStore((state) => state.tiltAngleX);
   const tiltAngleY = useSceneStore((state) => state.tiltAngleY);
   const perspective3D = useSceneStore((state) => state.perspective3D);
+  const graphicsQuality = useSceneStore((state) => state.graphicsQuality);
   
   const { stars } = useStars();
   const { planets, loading } = usePlanets(activeStarId);
@@ -54,7 +55,7 @@ export const SolarSystemScene: React.FC = () => {
 
       {/* 2. Large central glowing star body */}
       <mesh>
-        <sphereGeometry args={[0.26, 32, 32]} />
+        <sphereGeometry args={[0.26, graphicsQuality === 'low' ? 16 : 32, graphicsQuality === 'low' ? 16 : 32]} />
         <meshBasicMaterial color="#ffffff" />
       </mesh>
       
@@ -69,15 +70,17 @@ export const SolarSystemScene: React.FC = () => {
         />
       </mesh>
       
-      <mesh>
-        <sphereGeometry args={[0.42, 16, 16]} />
-        <meshBasicMaterial 
-          color={activeStar.color} 
-          transparent 
-          opacity={0.15} 
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
+      {graphicsQuality === 'high' && (
+        <mesh>
+          <sphereGeometry args={[0.42, 16, 16]} />
+          <meshBasicMaterial 
+            color={activeStar.color} 
+            transparent 
+            opacity={0.15} 
+            blending={THREE.AdditiveBlending}
+          />
+        </mesh>
+      )}
 
       {/* 3. Orbiting planets */}
       {!loading && planets.map((planet) => (

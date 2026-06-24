@@ -8,7 +8,7 @@ import { AddPlanetModal } from "@/components/ui/AddPlanetModal";
 import { NebulaBackground } from "@/components/ui/NebulaBackground";
 
 const inter = Inter({
-  subsets: ["latin"],
+  subsets: ["latin", "vietnamese"],
 });
 
 export const metadata: Metadata = {

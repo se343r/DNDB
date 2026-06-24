@@ -294,6 +294,20 @@ export const SpaceCanvas: React.FC = () => {
   const activeStarId = useSceneStore((state) => state.activeStarId);
   const activePlanetId = useSceneStore((state) => state.activePlanetId);
   const appPhase = useSceneStore((state) => state.appPhase);
+  const graphicsQuality = useSceneStore((state) => state.graphicsQuality);
+  const setGraphicsQuality = useSceneStore((state) => state.setGraphicsQuality);
+
+  // Auto-detect low-end devices on mount
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isMobile = window.innerWidth < 768;
+      const cores = navigator.hardwareConcurrency || 4;
+      // If mobile and low cores, or generally very low cores
+      if ((isMobile && cores <= 4) || cores <= 2) {
+        setGraphicsQuality('low');
+      }
+    }
+  }, [setGraphicsQuality]);
 
   // Determine which scene to render
   const renderScene = () => {
@@ -311,8 +325,9 @@ export const SpaceCanvas: React.FC = () => {
     <div className="fixed inset-0 w-full h-full bg-transparent z-0">
       <CanvasErrorBoundary>
         <Canvas
+          dpr={graphicsQuality === 'low' ? [1, 1] : [1, 2]}
           camera={{ fov: 60, near: 0.1, far: 1000, position: [0, 0, 8] }}
-          gl={{ antialias: true, alpha: true }}
+          gl={{ antialias: graphicsQuality === 'high', alpha: true, powerPreference: 'high-performance' }}
           onCreated={({ gl }) => gl.setClearAlpha(0)}
           className="w-full h-full"
         >

@@ -8,6 +8,7 @@ import { useSceneStore } from '@/store/sceneStore';
 export const CosmicBackground: React.FC = () => {
   const introComplete = useSceneStore((s) => s.constellationIntroComplete);
   const activeStarId  = useSceneStore((s) => s.activeStarId);
+  const graphicsQuality = useSceneStore((s) => s.graphicsQuality);
 
   // Always show background in solar system / planet views
   const shouldShow = introComplete || !!activeStarId;
@@ -20,7 +21,7 @@ export const CosmicBackground: React.FC = () => {
       <Stars
         radius={100}
         depth={50}
-        count={3500}
+        count={graphicsQuality === 'low' ? 800 : 3500}
         factor={4.5}
         saturation={0.5}
         fade
@@ -29,7 +30,7 @@ export const CosmicBackground: React.FC = () => {
 
       {/* Foreground drifting space dust */}
       <Sparkles
-        count={600}
+        count={graphicsQuality === 'low' ? 150 : 600}
         scale={55}
         size={2.5}
         speed={0.12}
@@ -38,7 +39,7 @@ export const CosmicBackground: React.FC = () => {
       />
 
       <Sparkles
-        count={250}
+        count={graphicsQuality === 'low' ? 50 : 250}
         scale={18}
         size={1.2}
         speed={0.25}

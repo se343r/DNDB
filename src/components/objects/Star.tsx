@@ -76,8 +76,9 @@ export const Star: React.FC<StarProps> = ({ star, index, totalStars, introPhase 
   const appPhase = useSceneStore((state) => state.appPhase);
   const setLeaderboardStarLanded = useSceneStore((state) => state.setLeaderboardStarLanded);
 
-  const posX = star.position_x * 5.5;
-  const posY = star.position_y * 3.5;
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const posX = isMobile ? star.position_y * 3.5 : star.position_x * 5.5;
+  const posY = isMobile ? -star.position_x * 5.5 : star.position_y * 3.5;
   const posZ = 0;
 
   const currentPos = useRef(new THREE.Vector3(posX, posY, posZ));

@@ -96,7 +96,10 @@ export const SearchBar: React.FC = () => {
             results.map((result) => (
               <div
                 key={result.planet.id}
-                onClick={() => handleSelect(result.planet.id)}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleSelect(result.planet.id);
+                }}
                 onMouseEnter={playHover}
                 className="flex flex-col px-4 py-3 hover:bg-white/10 transition-colors duration-200 cursor-pointer group"
               >
