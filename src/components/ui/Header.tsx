@@ -296,18 +296,24 @@ export const Header: React.FC = () => {
                     </div>
                   </div>
                 )}
-                <button
-                  onClick={() => {
-                    playClick();
-                    setUserMenuOpen(false);
-                    setChangePasswordModalOpen(true);
-                  }}
-                  onMouseEnter={playHover}
-                  className="flex items-center gap-3 px-4 py-2.5 text-xs text-left text-slate-300 hover:text-white hover:bg-white/10 transition duration-150 cursor-pointer"
-                >
-                  <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Đổi mật khẩu</span>
-                </button>
+                {!(
+                  user?.app_metadata?.provider === 'google' ||
+                  user?.app_metadata?.providers?.includes('google') ||
+                  user?.identities?.some((id) => id.provider === 'google')
+                ) && (
+                  <button
+                    onClick={() => {
+                      playClick();
+                      setUserMenuOpen(false);
+                      setChangePasswordModalOpen(true);
+                    }}
+                    onMouseEnter={playHover}
+                    className="flex items-center gap-3 px-4 py-2.5 text-xs text-left text-slate-300 hover:text-white hover:bg-white/10 transition duration-150 cursor-pointer"
+                  >
+                    <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Đổi mật khẩu</span>
+                  </button>
+                )}
                 <button
                   onClick={handleSignOut}
                   onMouseEnter={playHover}
