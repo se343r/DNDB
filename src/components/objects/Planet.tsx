@@ -9,7 +9,6 @@ import { generatePlanetCanvas } from '@/lib/planetTexture';
 import { useAudio } from '../providers/AudioProvider';
 import { Planet as PlanetType } from '@/lib/types';
 import { useSceneStore } from '@/store/sceneStore';
-import { PlanetHud } from '@/components/ui/PlanetHud';
 
 interface PlanetProps {
   planet: PlanetType;
@@ -30,6 +29,7 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
   const setTransitioning = useSceneStore((state) => state.setTransitioning);
   const triggerTransition = useSceneStore((state) => state.triggerTransition);
   const activePlanetId = useSceneStore((state) => state.activePlanetId);
+  const graphicsQuality = useSceneStore((state) => state.graphicsQuality);
 
   // Generate the procedural texture on mount (client-side only)
   useEffect(() => {
@@ -216,13 +216,8 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
         ref={groupRef} 
         position={isOrbiting ? [0, 0, 0] : [0, 0, 0]}
       >
-        {/* Floating HUD attached to this planet */}
-        {activePlanetId === planet.id && (
-          <PlanetHud planetId={planet.id} />
-        )}
-
         {/* Glow halo when hovered */}
-        {hovered && (
+        {hovered && graphicsQuality === 'high' && (
           <mesh>
             <sphereGeometry args={[actualSize * 1.25, 32, 32]} />
             <meshBasicMaterial
@@ -241,7 +236,7 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
           onPointerOver={handlePointerOver}
           onPointerOut={handlePointerOut}
         >
-          <sphereGeometry args={[actualSize, 32, 32]} />
+          <sphereGeometry args={[actualSize, graphicsQuality === 'low' ? 16 : 32, graphicsQuality === 'low' ? 16 : 32]} />
           
           {texture ? (
             <meshStandardMaterial

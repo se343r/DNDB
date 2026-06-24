@@ -8,6 +8,7 @@ import { useAudio } from '../providers/AudioProvider';
 import { useAuth } from '@/hooks/useAuth';
 import SearchBar from './SearchBar';
 import AuthModal from './AuthModal';
+import { MonitorSmartphone } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const router = useRouter();
@@ -28,6 +29,8 @@ export const Header: React.FC = () => {
   const activePlanetId = useSceneStore((state) => state.activePlanetId);
   const appPhase = useSceneStore((state) => state.appPhase);
   const hasPlayedIntro = useSceneStore((state) => state.hasPlayedIntro);
+  const graphicsQuality = useSceneStore((state) => state.graphicsQuality);
+  const setGraphicsQuality = useSceneStore((state) => state.setGraphicsQuality);
 
   // Hide header entirely during the intro screen (first visit)
   const [skipIntro, setSkipIntro] = React.useState(false);
@@ -92,10 +95,9 @@ export const Header: React.FC = () => {
   return (
     <header className="fixed top-0 left-0 w-full z-30 px-6 py-5 flex items-center justify-between pointer-events-none select-none">
       {/* Top Left: Floating Menu Button and Dropdown */}
-      {activeStarId || appPhase === 'home' ? (
-        <div />
-      ) : (
-        <div ref={dropdownRef} className="relative pointer-events-auto flex items-center gap-3">
+      <div className="relative flex items-center gap-3 pointer-events-none w-32">
+        {!(activeStarId || appPhase === 'home') && (
+          <div ref={dropdownRef} className="relative pointer-events-auto">
           {/* Menu Toggle Button */}
           <button
             onClick={() => {
@@ -173,16 +175,34 @@ export const Header: React.FC = () => {
                 <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                 <span>Đề xuất</span>
               </button>
+
+              {/* Dấu phân cách */}
+              <div className="h-px bg-white/10 my-1 mx-3" />
+
+              {/* 6. Chuyển đổi đồ hoạ */}
+              <button
+                onClick={() => {
+                  playClick();
+                  setGraphicsQuality(graphicsQuality === 'high' ? 'low' : 'high');
+                }}
+                onMouseEnter={playHover}
+                className="flex items-center gap-3 px-4 py-2.5 text-xs text-left text-slate-300 hover:text-white hover:bg-white/10 transition duration-150 cursor-pointer"
+              >
+                <MonitorSmartphone className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Đồ hoạ: {graphicsQuality === 'high' ? 'Cao' : 'Tối ưu'}</span>
+              </button>
             </div>
           )}
         </div>
-      )}
+        )}
+      </div>
 
       {/* Top Right: Search, Auth, and Music Controls */}
-      <div className="flex items-center gap-3 pointer-events-auto">
-        <div className="relative w-48 md:w-60">
-          <SearchBar />
-        </div>
+      {!activePlanetId && (
+        <div className="flex items-center gap-2 sm:gap-3 pointer-events-auto">
+          <div className="relative w-36 sm:w-48 md:w-60">
+            <SearchBar />
+          </div>
 
         {isAuthenticated ? (
           <div ref={userMenuRef} className="relative">
@@ -199,7 +219,7 @@ export const Header: React.FC = () => {
                 {profile?.display_name || 'Tài khoản'}
               </span>
               {profile && (
-                <>
+                <div className="hidden md:flex items-center gap-1.5">
                   <span className="text-zinc-600">·</span>
                   <span className="text-indigo-400 font-mono text-[10px]">
                     Lv.{profile.level}
@@ -218,7 +238,7 @@ export const Header: React.FC = () => {
                     <Star className="w-3 h-3" />
                     {profile.total_points.toLocaleString()}
                   </span>
-                </>
+                </div>
               )}
             </button>
 
@@ -269,13 +289,14 @@ export const Header: React.FC = () => {
               setAuthModalOpen(true);
             }}
             onMouseEnter={playHover}
-            className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition-all duration-300 cursor-pointer shadow-lg shadow-indigo-500/10"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition-all duration-300 cursor-pointer shadow-lg shadow-indigo-500/10"
           >
             <User className="w-3.5 h-3.5" />
-            <span>Đăng nhập</span>
+            <span className="hidden sm:inline">Đăng nhập</span>
           </button>
         )}
       </div>
+      )}
 
       <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </header>

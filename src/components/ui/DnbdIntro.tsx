@@ -294,7 +294,6 @@ export default function DnbdIntro({ onComplete }: DnbdIntroProps) {
       className={`relative w-full h-screen select-none overflow-hidden flex items-center justify-center transition-colors duration-500 ${
         phase === 'welcome_splash' ? 'bg-[#0a0a18] text-white' : 'bg-[#04040e] text-white'
       }`}
-      style={{ fontFamily: "'Inter', 'Space Grotesk', sans-serif" }}
     >
       {/* Background scanlines */}
       {phase !== 'welcome_splash' && (
@@ -603,7 +602,7 @@ export default function DnbdIntro({ onComplete }: DnbdIntroProps) {
             transition={{ duration: 1.5, times: [0, 0.15, 0.85, 1] }}
             className="z-10 text-center"
           >
-            <h1 className="text-4xl font-bold uppercase tracking-[0.3em] text-white drop-shadow-[0_0_30px_rgba(99,102,241,0.9)]">
+            <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-[0.3em] text-white drop-shadow-[0_0_30px_rgba(99,102,241,0.9)] leading-normal">
               Danh Nhân Bắc Đẩu!
             </h1>
             <div className="mt-5 flex justify-center gap-1.5">
@@ -663,13 +662,12 @@ export default function DnbdIntro({ onComplete }: DnbdIntroProps) {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.7 }}
-                className="text-4xl md:text-6xl font-extrabold uppercase tracking-[0.2em]"
+                className="text-3xl md:text-5xl font-extrabold uppercase tracking-[0.2em] leading-normal"
                 style={{
                   background: 'linear-gradient(135deg, #ffffff 0%, #c4b5fd 50%, #818cf8 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
-                  fontFamily: "'Space Grotesk', sans-serif",
                 }}
               >
                 Chào mừng đến
@@ -679,13 +677,12 @@ export default function DnbdIntro({ onComplete }: DnbdIntroProps) {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.7 }}
-                className="text-2xl md:text-4xl font-extrabold uppercase tracking-[0.15em] mt-4"
+                className="text-xl md:text-3xl font-extrabold uppercase tracking-[0.15em] mt-4 leading-normal"
                 style={{
                   background: 'linear-gradient(135deg, #c4b5fd 0%, #a78bfa 50%, #7c3aed 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
-                  fontFamily: "'Space Grotesk', sans-serif",
                 }}
               >
                 Danh Nhân Bắc Đẩu!

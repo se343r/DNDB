@@ -34,7 +34,10 @@ const SEGMENTS = [
 ];
 
 function getPos(star: Star): THREE.Vector3 {
-  return new THREE.Vector3(star.position_x * 5.5, star.position_y * 3.5, 0);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const posX = isMobile ? star.position_y * 3.5 : star.position_x * 5.5;
+  const posY = isMobile ? -star.position_x * 5.5 : star.position_y * 3.5;
+  return new THREE.Vector3(posX, posY, 0);
 }
 
 export const AnimatedConstellationLines: React.FC<AnimatedConstellationLinesProps> = ({

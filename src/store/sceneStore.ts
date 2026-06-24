@@ -71,6 +71,10 @@ interface SceneState {
   isDemoMode: boolean;
   setIsDemoMode: (val: boolean) => void;
 
+  // Graphics Quality (Optimization for low-end devices)
+  graphicsQuality: 'high' | 'low';
+  setGraphicsQuality: (val: 'high' | 'low') => void;
+
   resetScene: () => void;
 }
 
@@ -120,6 +124,10 @@ export const useSceneStore = create<SceneState>((set) => ({
   // Demo mode default
   isDemoMode: false,
   setIsDemoMode: (val) => set({ isDemoMode: val }),
+
+  // Graphics Quality default
+  graphicsQuality: 'high',
+  setGraphicsQuality: (val) => set({ graphicsQuality: val }),
 
   setActiveStarId: (id) => set({ activeStarId: id }),
   setActivePlanetId: (id) => set({ activePlanetId: id }),

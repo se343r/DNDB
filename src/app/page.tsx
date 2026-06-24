@@ -363,7 +363,7 @@ export default function HomePage() {
         )}
 
         {showUI && quizActive && (
-          <div className="absolute right-6 sm:right-16 top-1/2 -translate-y-1/2 w-full max-w-lg pointer-events-none z-20">
+          <div className="absolute left-4 right-4 md:left-auto md:right-16 top-1/2 -translate-y-1/2 max-w-lg mx-auto md:w-full pointer-events-none z-20">
             <motion.div
               key="quiz-ui"
               className="pointer-events-auto p-4 w-full"

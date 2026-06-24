@@ -3,11 +3,12 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Plus, Sliders, Settings } from 'lucide-react';
+import { ArrowLeft, Plus, Settings } from 'lucide-react';
 import { useStars } from '@/hooks/useStars';
 import { usePlanets } from '@/hooks/usePlanets';
 import { useSceneStore } from '@/store/sceneStore';
 import { useAudio } from '@/components/providers/AudioProvider';
+import { PlanetHud } from '@/components/ui/PlanetHud';
 
 export default function StarPage() {
   const params = useParams();
@@ -55,14 +56,6 @@ export default function StarPage() {
       triggerTransition([posX, posY - 2.8, 6.8], [posX, posY, 0], 1.2);
     }
   };
-
-  // 3D Visual Coordinates from Zustand store
-  const tiltAngleX = useSceneStore((state) => state.tiltAngleX);
-  const tiltAngleY = useSceneStore((state) => state.tiltAngleY);
-  const perspective3D = useSceneStore((state) => state.perspective3D);
-  const setTiltAngleX = useSceneStore((state) => state.setTiltAngleX);
-  const setTiltAngleY = useSceneStore((state) => state.setTiltAngleY);
-  const setPerspective3D = useSceneStore((state) => state.setPerspective3D);
 
   const activeStar = useMemo(() => {
     return stars.find((s) => s.id === starId);
@@ -138,107 +131,54 @@ export default function StarPage() {
       className="w-full h-full flex flex-col justify-between p-6 pointer-events-none select-none"
     >
       {/* 1. Header controls bar */}
-      <div className="flex items-start justify-between w-full relative z-20 pointer-events-auto">
-        <div className="flex flex-wrap items-center gap-4">
-          <button
-            onClick={activePlanetId ? handleClosePlanet : handleGoBack}
-            onMouseEnter={playHover}
-            className="px-3 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-xl border border-zinc-800 hover:border-zinc-700 font-semibold text-xs flex items-center space-x-1.5 transition cursor-pointer"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>{activePlanetId ? `Hệ mặt trời ${activeStar.name}` : 'Chòm sao Bắc Đẩu'}</span>
-          </button>
+      {!activePlanetId && (
+        <div className="flex items-start justify-between w-full relative z-20 pointer-events-auto">
+          <div className="flex flex-wrap items-center gap-4">
+            <button
+              onClick={handleGoBack}
+              onMouseEnter={playHover}
+              className="px-3 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-xl border border-zinc-800 hover:border-zinc-700 font-semibold text-xs flex items-center space-x-1.5 transition cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Chòm sao Bắc Đẩu</span>
+            </button>
 
-          <div className="h-6 w-px bg-zinc-800 hidden sm:block" />
+            <div className="h-6 w-px bg-zinc-800 hidden sm:block" />
 
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="text-[9px] bg-indigo-500/10 text-indigo-400 font-mono px-2 py-0.5 rounded border border-indigo-500/20 uppercase">
-                Hệ mặt trời {activeStar.name}
-              </span>
-              <span className="text-[9px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded">
-                Trọng tâm: {activeStar.name.toUpperCase()}
-              </span>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="text-[9px] bg-indigo-500/10 text-indigo-400 font-mono px-2 py-0.5 rounded border border-indigo-500/20 uppercase">
+                  Hệ mặt trời {activeStar.name}
+                </span>
+                <span className="text-[9px] bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded">
+                  Trọng tâm: {activeStar.name.toUpperCase()}
+                </span>
+              </div>
+              <h2 className="text-lg font-bold text-white font-display mt-0.5">
+                Học Thuyết Lĩnh vực {activeStar.name}
+              </h2>
             </div>
-            <h2 className="text-lg font-bold text-white font-display mt-0.5">
-              Học Thuyết Lĩnh vực {activeStar.name}
-            </h2>
           </div>
         </div>
-
-      </div>
+      )}
 
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* 2. 3D perspective adjust panel (Bottom-Right) */}
-      <div className="absolute bottom-16 right-6 z-20 bg-zinc-950/90 border border-zinc-800 rounded-2xl p-4 flex flex-col space-y-3 shadow-2xl w-60 backdrop-blur-md pointer-events-auto">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 flex items-center space-x-1.5">
-            <Sliders className="w-3.5 h-3.5 text-indigo-400" />
-            <span>GÓC QUAY ORBIT 3D</span>
+      {/* 2. Star System Footer (Bottom) */}
+      {!activePlanetId && (
+        <div className="flex items-center justify-between w-full relative z-20 text-[9px] text-zinc-500 border-t border-zinc-900/60 pt-3 mt-4">
+          <span className="font-mono uppercase">
+            TRỰC KHÔNG GIAN TRI THỨC VỮNG BỀN | {!planetsLoading ? planets.length : '...'} HÀNH TINH KHẢ SÁT
           </span>
-          <button
-            type="button"
-            onClick={() => {
-              playClick();
-              setPerspective3D(!perspective3D);
-            }}
-            onMouseEnter={playHover}
-            className={`px-2 py-0.5 rounded text-[9px] font-bold font-mono transition-colors cursor-pointer ${
-              perspective3D
-                ? 'bg-indigo-600 text-white hover:bg-indigo-500'
-                : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white'
-            }`}
-          >
-            {perspective3D ? 'KHÔNG GIAN 3D' : 'MẶT PHẲNG 2D'}
-          </button>
+          <p className="text-zinc-500 font-mono hidden sm:block">
+            Mỗi hành tinh tự động lưu giữ một khối cơ sở dữ liệu riêng
+          </p>
         </div>
+      )}
 
-        {perspective3D && (
-          <div className="space-y-2 text-[10px]">
-            <div>
-              <label className="flex items-center justify-between text-zinc-400 font-mono mb-1">
-                <span>ĐỘ NGHIÊNG (X-AXIS)</span>
-                <span className="text-white font-bold">{tiltAngleX}°</span>
-              </label>
-              <input
-                type="range"
-                min="35"
-                max="78"
-                value={tiltAngleX}
-                onChange={(e) => setTiltAngleX(parseInt(e.target.value))}
-                className="w-full accent-indigo-500 h-1 bg-zinc-850 rounded-lg cursor-pointer"
-              />
-            </div>
-
-            <div>
-              <label className="flex items-center justify-between text-zinc-400 font-mono mb-1">
-                <span>XOAY QUỸ ĐẠO (Z-AXIS)</span>
-                <span className="text-white font-bold">{tiltAngleY}°</span>
-              </label>
-              <input
-                type="range"
-                min="-45"
-                max="45"
-                value={tiltAngleY}
-                onChange={(e) => setTiltAngleY(parseInt(e.target.value))}
-                className="w-full accent-indigo-500 h-1 bg-zinc-850 rounded-lg cursor-pointer"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 3. Star System Footer (Bottom) */}
-      <div className="flex items-center justify-between w-full relative z-20 text-[9px] text-zinc-500 border-t border-zinc-900/60 pt-3 mt-4">
-        <span className="font-mono uppercase">
-          TRỰC KHÔNG GIAN TRI THỨC VỮNG BỀN | {!planetsLoading ? planets.length : '...'} HÀNH TINH KHẢ SÁT
-        </span>
-        <p className="text-zinc-500 font-mono hidden sm:block">
-          Mỗi hành tinh tự động lưu giữ một khối cơ sở dữ liệu riêng
-        </p>
-      </div>
+      {/* 3. Global Fullscreen Reading Overlay */}
+      {activePlanetId && <PlanetHud planetId={activePlanetId} onClose={handleClosePlanet} />}
     </motion.div>
   );
 }
