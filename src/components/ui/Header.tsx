@@ -2,13 +2,14 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, Home, Compass, HelpCircle, Trophy, Sparkles, ChevronDown, User, LogOut, Flame, Star } from 'lucide-react';
+import { Menu, Home, Compass, HelpCircle, Trophy, Sparkles, ChevronDown, User, LogOut, Flame, Star, KeyRound, MonitorSmartphone } from 'lucide-react';
 import { useSceneStore } from '@/store/sceneStore';
 import { useAudio } from '../providers/AudioProvider';
 import { useAuth } from '@/hooks/useAuth';
 import SearchBar from './SearchBar';
 import AuthModal from './AuthModal';
-import { MonitorSmartphone } from 'lucide-react';
+import ChangePasswordModal from './ChangePasswordModal';
+import { debugLog } from '@/lib/debug';
 
 export const Header: React.FC = () => {
   const router = useRouter();
@@ -21,6 +22,7 @@ export const Header: React.FC = () => {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -39,6 +41,41 @@ export const Header: React.FC = () => {
       setSkipIntro(!!localStorage.getItem('dnbd_has_visited'));
     }
   }, []);
+
+  // Restore search target from sessionStorage on client mount (e.g. after page reloads)
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('dnbd_search_target');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          debugLog('Header: restored search target from sessionStorage', parsed);
+          if (parsed.starId && parsed.planetId && parsed.step) {
+            const store = useSceneStore.getState();
+            
+            // If the step was interrupted at 'to_star', set it back to 'to_catalog' to restart the flow
+            const targetStep = parsed.step === 'to_star' ? 'to_catalog' : parsed.step;
+            store.setSearchTarget(parsed.starId, parsed.planetId, targetStep);
+            
+            if (targetStep === 'to_catalog') {
+              store.setAppPhase('catalog');
+              if (window.location.pathname === '/') {
+                router.push('/catalog');
+              }
+            } else if (targetStep === 'to_planet') {
+              store.setAppPhase('catalog');
+              store.setActiveStarId(parsed.starId);
+              if (window.location.pathname !== `/star/${parsed.starId}`) {
+                router.push(`/star/${parsed.starId}`);
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing search target from sessionStorage:', e);
+        }
+      }
+    }
+  }, [router]);
 
   // Close menu when active star or planet changes
   useEffect(() => {
@@ -260,9 +297,21 @@ export const Header: React.FC = () => {
                   </div>
                 )}
                 <button
+                  onClick={() => {
+                    playClick();
+                    setUserMenuOpen(false);
+                    setChangePasswordModalOpen(true);
+                  }}
+                  onMouseEnter={playHover}
+                  className="flex items-center gap-3 px-4 py-2.5 text-xs text-left text-slate-300 hover:text-white hover:bg-white/10 transition duration-150 cursor-pointer"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Đổi mật khẩu</span>
+                </button>
+                <button
                   onClick={handleSignOut}
                   onMouseEnter={playHover}
-                  className="flex items-center gap-3 px-4 py-2.5 text-xs text-left text-rose-400 hover:bg-white/10 transition duration-150 cursor-pointer"
+                  className="flex items-center gap-3 px-4 py-2.5 text-xs text-left text-rose-450 hover:bg-white/10 transition duration-150 cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>Đăng xuất</span>
@@ -299,6 +348,7 @@ export const Header: React.FC = () => {
       )}
 
       <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      <ChangePasswordModal open={changePasswordModalOpen} onClose={() => setChangePasswordModalOpen(false)} />
     </header>
   );
 };

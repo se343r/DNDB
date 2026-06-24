@@ -3,10 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowUpRight, Loader2, AlertCircle } from 'lucide-react';
-import { BackButton } from '@/components/ui/BackButton';
 import { useAudio } from '@/components/providers/AudioProvider';
 import { useRouter } from 'next/navigation';
 import { useSceneStore } from '@/store/sceneStore';
+import { debugLog } from '@/lib/debug';
 
 interface Recommendation {
   id: string;
@@ -22,13 +22,17 @@ interface Recommendation {
 export default function RecommendationsPage() {
   const { playClick, playHover } = useAudio();
   const router = useRouter();
-  const setSearchTarget = useSceneStore((s) => s.setSearchTarget);
-  const setAppPhase = useSceneStore((s) => s.setAppPhase);
-  const resetScene = useSceneStore((s) => s.resetScene);
+  const setAppPhase = useSceneStore((state) => state.setAppPhase);
+  const resetScene = useSceneStore((state) => state.resetScene);
 
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setAppPhase('catalog');
+    resetScene();
+  }, [setAppPhase, resetScene]);
 
   useEffect(() => {
     async function load() {
@@ -50,18 +54,19 @@ export default function RecommendationsPage() {
 
   const handleCardClick = (rec: Recommendation) => {
     playClick();
-    // Navigate into the 3D scene: go to catalog, then zoom to star then planet
-    resetScene();
-    setAppPhase('catalog');
-    setSearchTarget(rec.star_id, rec.id, 'to_catalog');
+    debugLog('recommendation clicked', { starId: rec.star_id, planetId: rec.id });
+    const store = useSceneStore.getState();
+    store.setSearchTarget(rec.star_id, rec.id, 'to_catalog');
+    store.setAppPhase('catalog');
+    store.setActiveStarId(null);
+    store.setActivePlanetId(null);
+    store.setTrackedPosition(null);
     router.push('/catalog');
   };
 
 
   return (
     <div className="relative w-full h-full min-h-screen bg-transparent flex flex-col items-center justify-start p-6 pt-24 text-white overflow-y-auto">
-      <BackButton to="/catalog" />
-
       <div className="w-full max-w-2xl flex flex-col gap-6 relative z-10 pointer-events-auto">
         {/* Banner */}
         <div className="bg-slate-950/80 border border-indigo-500/20 rounded-3xl p-6 md:p-8 backdrop-blur-xl shadow-2xl flex flex-col gap-3">
@@ -72,7 +77,7 @@ export default function RecommendationsPage() {
             <div>
               <h1 className="text-xl font-bold tracking-wide">Đề Xuất Hành Trình</h1>
               <p className="text-xs text-slate-400 mt-1">
-                Gợi ý các thực thể danh nhân bạn nên tìm hiểu tiếp theo dựa trên liên kết học tập của bạn.
+                Có thể bạn sẽ muốn đọc
               </p>
             </div>
           </div>

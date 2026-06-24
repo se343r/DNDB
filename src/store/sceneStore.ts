@@ -138,11 +138,20 @@ export const useSceneStore = create<SceneState>((set) => ({
   searchTargetStarId: null,
   searchTargetPlanetId: null,
   searchNavigationStep: 'idle',
-  setSearchTarget: (starId, planetId, step) => set({
-    searchTargetStarId: starId,
-    searchTargetPlanetId: planetId,
-    searchNavigationStep: step
-  }),
+  setSearchTarget: (starId, planetId, step) => {
+    if (typeof window !== 'undefined') {
+      if (step === 'idle') {
+        sessionStorage.removeItem('dnbd_search_target');
+      } else {
+        sessionStorage.setItem('dnbd_search_target', JSON.stringify({ starId, planetId, step }));
+      }
+    }
+    set({
+      searchTargetStarId: starId,
+      searchTargetPlanetId: planetId,
+      searchNavigationStep: step
+    });
+  },
 
   setCameraTarget: (position, lookAt) => set({ 
     cameraPosition: position, 

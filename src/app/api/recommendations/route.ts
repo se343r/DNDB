@@ -14,67 +14,34 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
  * gần nhất của user (hoặc random nếu user chưa xem gì / chưa đăng nhập).
  */
 export async function GET(req: NextRequest) {
-  const planetId = req.nextUrl.searchParams.get('planet_id');
-  const count = Math.min(Math.max(Number(req.nextUrl.searchParams.get('count')) || 3, 1), 10);
+  const count = Math.min(Math.max(Number(req.nextUrl.searchParams.get('count')) || 5, 1), 10);
 
   const supabase = createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  let basePlanetId = planetId;
-
-  // Nếu không có planet_id cụ thể, dùng planet user xem gần nhất làm gốc
-  if (!basePlanetId && user) {
-    const { data: lastView } = await supabase
-      .from('user_planet_views')
-      .select('planet_id')
-      .eq('user_id', user.id)
-      .order('viewed_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    basePlanetId = lastView?.planet_id ?? null;
-  }
-
-  // Không có gốc nào để gợi ý theo — trả về vài planet ngẫu nhiên
-  if (!basePlanetId) {
-    const { data: randomPlanets, error: randErr } = await supabase
-      .from('planets')
-      .select('id, name, bio, avatar_url, star_id, stars(name, color)')
-      .limit(count);
-
-    if (randErr) {
-      return NextResponse.json({ error: randErr.message }, { status: 500 });
-    }
-
-    return NextResponse.json({
-      recommendations: (randomPlanets ?? []).map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        bio: p.bio,
-        avatar_url: p.avatar_url,
-        star_id: p.star_id,
-        star_name: p.stars?.name,
-        star_color: p.stars?.color,
-        reason: 'Khám phá danh nhân nổi bật',
-      })),
-      based_on: null,
-    });
-  }
-
-  const { data, error } = await supabase.rpc('get_recommendations', {
-    p_planet_id: basePlanetId,
-    p_user_id: user?.id ?? null,
-    p_count: count,
-  });
+  const { data: planets, error } = await supabase
+    .from('planets')
+    .select('id, name, bio, avatar_url, star_id, stars(name, color)');
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Shuffle planets in JavaScript to provide a randomized selection
+  const shuffled = (planets ?? []).sort(() => 0.5 - Math.random());
+  const selected = shuffled.slice(0, count);
+
   return NextResponse.json({
-    recommendations: data ?? [],
-    based_on: basePlanetId,
+    recommendations: selected.map((p: any) => ({
+      id: p.id,
+      name: p.name,
+      bio: p.bio,
+      avatar_url: p.avatar_url,
+      star_id: p.star_id,
+      star_name: p.stars?.name,
+      star_color: p.stars?.color,
+      reason: 'Khám phá ngẫu nhiên',
+    })),
+    based_on: null,
   });
 }
 

@@ -2,9 +2,10 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, LogIn } from 'lucide-react';
+import { Loader2, LogIn, Mail } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSceneStore } from '@/store/sceneStore';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface DnbdIntroProps {
   onComplete: () => void;
@@ -41,23 +42,56 @@ export default function DnbdIntro({ onComplete }: DnbdIntroProps) {
   const [regStudentId, setRegStudentId] = useState('');
   const [regLoading, setRegLoading] = useState(false);
   const [regError, setRegError] = useState<string | null>(null);
+  const [regSuccessEmail, setRegSuccessEmail] = useState<string | null>(null);
+  
+  const [stats, setStats] = useState({
+    planets: 12,
+    stars: 8,
+    users: 20,
+  });
 
   useEffect(() => {
     phaseStartTime.current = Date.now();
   }, [phase]);
 
+  useEffect(() => {
+    async function fetchStats() {
+      if (!isSupabaseConfigured || !supabase) return;
+      try {
+        const { count: planetCount } = await supabase
+          .from('planets')
+          .select('*', { count: 'exact', head: true });
+        const { count: starCount } = await supabase
+          .from('stars')
+          .select('*', { count: 'exact', head: true });
+        const { count: userCount } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+
+        setStats({
+          planets: planetCount ?? 12,
+          stars: starCount ?? 8,
+          users: userCount ?? 20,
+        });
+      } catch (err) {
+        console.error('Error fetching stats:', err);
+      }
+    }
+    fetchStats();
+  }, []);
+
   // ── Calibration log simulation ──────────────────────────────────────────────
   useEffect(() => {
     if (phase !== 'calibrating') return;
     const messages = [
-      'Kết nối mạng lưới tri thức Bắc Đẩu Thất Tinh...',
-      'Ánh xạ toạ độ hành tinh từ cơ sở dữ liệu lịch sử...',
-      'Đồng bộ dữ liệu danh nhân — 1.247 nhân vật...',
-      'Khởi tạo bản đồ vũ trụ 3D không gian — STABLE',
-      'Hiệu chỉnh quỹ đạo hành tinh và hệ sao...',
-      'Kết nối hệ thống âm thanh không gian...',
-      'Bộ nhớ lịch sử đã tải: 2.000 năm dữ liệu',
-      'Sẵn sàng đi vào vũ trụ tri thức.',
+      'Kết nối cơ sở dữ liệu Supabase & Xác thực người dùng... OK',
+      'Khởi tạo thư viện đồ họa 3D Three.js & React Three Fiber... OK',
+      'Ánh xạ dữ liệu chòm sao Bắc Đẩu và tinh cầu danh nhân... OK',
+      'Đồng bộ hệ thống âm thanh không gian Howler.js... OK',
+      'Tải ngân hàng câu hỏi trắc nghiệm & Bảng xếp hạng... OK',
+      'Kích hoạt thuật toán gợi ý hành trình học tập cá nhân hóa... OK',
+      'Thiết lập cấu hình đồ họa tối ưu cho thiết bị của bạn... OK',
+      'Đồng bộ hóa hoàn tất. Sẵn sàng đi vào Vũ Trụ Tri Thức.',
     ];
     let idx = 0;
     const logInt = setInterval(() => {
@@ -373,130 +407,162 @@ export default function DnbdIntro({ onComplete }: DnbdIntroProps) {
             transition={{ duration: 0.5 }}
             className="z-10 w-full max-w-sm px-6"
           >
-            {/* Header */}
-            <div className="text-center mb-6">
-              <p className="text-[10px] font-mono text-indigo-500 uppercase tracking-[0.4em] mb-2">Xác thực danh tính</p>
-              <h2 className="text-lg font-bold text-white leading-tight">
-                Trước khi tiếp cận vũ trụ tri thức
-              </h2>
-              <p className="text-xs text-slate-500 mt-1">Tạo tài khoản để lưu tiến trình và lên bảng xếp hạng</p>
-            </div>
-
-            {/* Tab toggle */}
-            <div className="flex rounded-lg border border-slate-800 overflow-hidden mb-5">
-              <button
-                onClick={() => { setAuthMode('signup'); setRegError(null); }}
-                className={`flex-1 py-2 text-[11px] font-mono uppercase tracking-widest transition-colors cursor-pointer ${authMode === 'signup' ? 'bg-indigo-900/60 text-indigo-300' : 'text-slate-500 hover:text-slate-300'}`}
-              >
-                Tạo tài khoản
-              </button>
-              <button
-                onClick={() => { setAuthMode('signin'); setRegError(null); }}
-                className={`flex-1 py-2 text-[11px] font-mono uppercase tracking-widest transition-colors cursor-pointer ${authMode === 'signin' ? 'bg-indigo-900/60 text-indigo-300' : 'text-slate-500 hover:text-slate-300'}`}
-              >
-                Đăng nhập
-              </button>
-            </div>
-
-            {/* Google OAuth */}
-            <button
-              onClick={async () => { await signInWithGoogle(); }}
-              className="w-full flex items-center justify-center gap-2 py-2.5 mb-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-white cursor-pointer transition"
-            >
-              <LogIn className="w-4 h-4" />
-              Tiếp tục với Google
-            </button>
-
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex-1 h-px bg-white/10" />
-              <span className="text-[10px] text-slate-500 font-mono uppercase">hoặc</span>
-              <div className="flex-1 h-px bg-white/10" />
-            </div>
-
-            {/* Error */}
-            {regError && (
-              <div className="mb-3 p-2.5 bg-rose-950/30 border border-rose-500/20 rounded-lg text-[11px] text-rose-400">
-                {regError}
+            {regSuccessEmail ? (
+              <div className="text-center py-6 px-4 border border-indigo-500/20 bg-indigo-950/20 rounded-2xl backdrop-blur-md">
+                <div className="flex justify-center mb-5 text-indigo-400">
+                  <Mail className="w-12 h-12 animate-pulse" />
+                </div>
+                <h2 className="text-lg font-bold text-white mb-2">Xác thực tài khoản</h2>
+                <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+                  Một liên kết xác thực đã được gửi tới <strong className="text-indigo-300">{regSuccessEmail}</strong>. 
+                  Vui lòng kiểm tra hộp thư đến (hoặc hòm thư rác/spam) và nhấp vào liên kết để kích hoạt tài khoản của bạn trước khi đăng nhập.
+                </p>
+                <button
+                  onClick={() => {
+                    setRegSuccessEmail(null);
+                    setAuthMode('signin');
+                    setRegEmail('');
+                    setRegPassword('');
+                    setRegName('');
+                    setRegStudentId('');
+                  }}
+                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition cursor-pointer"
+                >
+                  Quay lại đăng nhập
+                </button>
               </div>
-            )}
+            ) : (
+              <>
+                {/* Header */}
+                <div className="text-center mb-6">
+                  <p className="text-[10px] font-mono text-indigo-500 uppercase tracking-[0.4em] mb-2">Xác thực danh tính</p>
+                  <h2 className="text-lg font-bold text-white leading-tight">
+                    Trước khi tiếp cận vũ trụ tri thức
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">Tạo tài khoản để lưu tiến trình và lên bảng xếp hạng</p>
+                </div>
 
-            {/* Form */}
-            <form
-              className="flex flex-col gap-3"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setRegLoading(true);
-                setRegError(null);
-                let result;
-                if (authMode === 'signup') {
-                  result = await signUpWithEmail(regEmail, regPassword, regName || regEmail.split('@')[0], regStudentId);
-                } else {
-                  result = await signInWithEmail(regEmail, regPassword);
-                }
-                setRegLoading(false);
-                if (result?.error) {
-                  setRegError(result.error);
-                  return;
-                }
-                setPhase('calibrating');
-              }}
-            >
-              {authMode === 'signup' && (
-                <>
+                {/* Tab toggle */}
+                <div className="flex rounded-lg border border-slate-800 overflow-hidden mb-5">
+                  <button
+                    onClick={() => { setAuthMode('signup'); setRegError(null); }}
+                    className={`flex-1 py-2 text-[11px] font-mono uppercase tracking-widest transition-colors cursor-pointer ${authMode === 'signup' ? 'bg-indigo-900/60 text-indigo-300' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    Tạo tài khoản
+                  </button>
+                  <button
+                    onClick={() => { setAuthMode('signin'); setRegError(null); }}
+                    className={`flex-1 py-2 text-[11px] font-mono uppercase tracking-widest transition-colors cursor-pointer ${authMode === 'signin' ? 'bg-indigo-900/60 text-indigo-300' : 'text-slate-500 hover:text-slate-300'}`}
+                  >
+                    Đăng nhập
+                  </button>
+                </div>
+
+                {/* Google OAuth */}
+                <button
+                  onClick={async () => { await signInWithGoogle(); }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 mb-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-white cursor-pointer transition"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Tiếp tục với Google
+                </button>
+
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-1 h-px bg-white/10" />
+                  <span className="text-[10px] text-slate-500 font-mono uppercase">hoặc</span>
+                  <div className="flex-1 h-px bg-white/10" />
+                </div>
+
+                {/* Error */}
+                {regError && (
+                  <div className="mb-3 p-2.5 bg-rose-950/30 border border-rose-500/20 rounded-lg text-[11px] text-rose-400">
+                    {regError}
+                  </div>
+                )}
+
+                {/* Form */}
+                <form
+                  className="flex flex-col gap-3"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setRegLoading(true);
+                    setRegError(null);
+                    let result;
+                    if (authMode === 'signup') {
+                      result = await signUpWithEmail(regEmail, regPassword, regName || regEmail.split('@')[0], regStudentId);
+                    } else {
+                      result = await signInWithEmail(regEmail, regPassword);
+                    }
+                    setRegLoading(false);
+                    if (result?.error) {
+                      setRegError(result.error);
+                      return;
+                    }
+                    if (authMode === 'signup') {
+                      setRegSuccessEmail(regEmail);
+                    } else {
+                      setPhase('calibrating');
+                    }
+                  }}
+                >
+                  {authMode === 'signup' && (
+                    <>
+                      <input
+                        type="text"
+                        required
+                        value={regName}
+                        onChange={(e) => setRegName(e.target.value)}
+                        placeholder="Tên hiển thị"
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 transition-colors"
+                      />
+                      <input
+                        type="text"
+                        value={regStudentId}
+                        onChange={(e) => setRegStudentId(e.target.value)}
+                        placeholder="Mã số sinh viên (không bắt buộc)"
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 transition-colors"
+                      />
+                    </>
+                  )}
                   <input
-                    type="text"
+                    type="email"
                     required
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                    placeholder="Tên hiển thị"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    placeholder="Email"
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 transition-colors"
                   />
                   <input
-                    type="text"
-                    value={regStudentId}
-                    onChange={(e) => setRegStudentId(e.target.value)}
-                    placeholder="Mã số sinh viên (không bắt buộc)"
+                    type="password"
+                    required
+                    minLength={6}
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    placeholder="Mật khẩu (tối thiểu 6 ký tự)"
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 transition-colors"
                   />
-                </>
-              )}
-              <input
-                type="email"
-                required
-                value={regEmail}
-                onChange={(e) => setRegEmail(e.target.value)}
-                placeholder="Email"
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 transition-colors"
-              />
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={regPassword}
-                onChange={(e) => setRegPassword(e.target.value)}
-                placeholder="Mật khẩu (tối thiểu 6 ký tự)"
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-indigo-500 transition-colors"
-              />
-              <button
-                type="submit"
-                disabled={regLoading}
-                className="w-full mt-1 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
-              >
-                {regLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {authMode === 'signup' ? 'Tạo tài khoản & Kết nối' : 'Đăng nhập & Kết nối'}
-              </button>
-            </form>
+                  <button
+                    type="submit"
+                    disabled={regLoading}
+                    className="w-full mt-1 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                  >
+                    {regLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    {authMode === 'signup' ? 'Tạo tài khoản & Kết nối' : 'Đăng nhập & Kết nối'}
+                  </button>
+                </form>
 
-            {/* Demo skip */}
-            <button
-              onClick={() => {
-                setIsDemoMode(true);
-                setPhase('calibrating');
-              }}
-              className="w-full mt-4 text-[10px] text-center text-slate-600 hover:text-slate-400 cursor-pointer transition font-mono uppercase tracking-widest"
-            >
-              Chỉ xem thử — vào chế độ Demo
-            </button>
+                {/* Demo skip */}
+                <button
+                  onClick={() => {
+                    setIsDemoMode(true);
+                    setPhase('calibrating');
+                  }}
+                  className="w-full mt-4 text-[10px] text-center text-slate-600 hover:text-slate-400 cursor-pointer transition font-mono uppercase tracking-widest"
+                >
+                  Chỉ xem thử — vào chế độ Demo
+                </button>
+              </>
+            )}
           </motion.div>
         )}
 
@@ -550,9 +616,9 @@ export default function DnbdIntro({ onComplete }: DnbdIntroProps) {
             {/* Stats readout */}
             <div className="grid grid-cols-3 gap-2 mb-10 text-[10px] font-mono text-slate-500 uppercase tracking-widest text-left">
               {[
-                { label: 'Danh nhân', value: '1.247', color: 'text-indigo-400' },
-                { label: 'Hệ sao', value: '8 sao', color: 'text-violet-400' },
-                { label: 'Thế kỷ', value: '20+ TK', color: 'text-sky-400' },
+                { label: 'Danh nhân', value: stats.planets.toLocaleString('vi-VN'), color: 'text-indigo-400' },
+                { label: 'Hệ sao', value: `${stats.stars} sao`, color: 'text-violet-400' },
+                { label: 'Người dùng', value: stats.users.toLocaleString('vi-VN'), color: 'text-sky-400' },
               ].map(({ label, value, color }) => (
                 <div key={label} className="border border-slate-800/80 bg-slate-900/30 p-2.5 rounded">
                   <span className="block text-slate-600 mb-0.5">{label}</span>

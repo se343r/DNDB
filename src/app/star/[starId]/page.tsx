@@ -9,6 +9,7 @@ import { usePlanets } from '@/hooks/usePlanets';
 import { useSceneStore } from '@/store/sceneStore';
 import { useAudio } from '@/components/providers/AudioProvider';
 import { PlanetHud } from '@/components/ui/PlanetHud';
+import { debugLog } from '@/lib/debug';
 
 export default function StarPage() {
   const params = useParams();
@@ -27,6 +28,9 @@ export default function StarPage() {
   const isTransitioning = useSceneStore((state) => state.isTransitioning);
   const setTransitioning = useSceneStore((state) => state.setTransitioning);
   const triggerTransition = useSceneStore((state) => state.triggerTransition);
+  const setAppPhase = useSceneStore((state) => state.setAppPhase);
+  const setConstellationIntroComplete = useSceneStore((state) => state.setConstellationIntroComplete);
+  const setHasPlayedIntro = useSceneStore((state) => state.setHasPlayedIntro);
   
   const searchNavigationStep = useSceneStore((state) => state.searchNavigationStep);
   const searchTargetPlanetId = useSceneStore((state) => state.searchTargetPlanetId);
@@ -61,9 +65,24 @@ export default function StarPage() {
     return stars.find((s) => s.id === starId);
   }, [stars, starId]);
 
-  const initializedRef = useRef(false);
+  const [initialized, setInitialized] = React.useState(false);
+
+  // On direct load/reload of /star/[starId], appPhase starts as 'home' which renders the
+  // HomeScene (black hole). Setting it to 'catalog' immediately shows the solar system.
+  useEffect(() => {
+    setAppPhase('catalog');
+    setConstellationIntroComplete(true);
+    setHasPlayedIntro(true);
+  }, [setAppPhase, setConstellationIntroComplete, setHasPlayedIntro]);
 
   useEffect(() => {
+    debugLog('StarPage initialization check', {
+      starsLoading,
+      hasActiveStar: !!activeStar,
+      initialized,
+      searchNavigationStep: useSceneStore.getState().searchNavigationStep,
+    });
+
     if (starsLoading) return;
 
     if (!activeStar) {
@@ -71,33 +90,42 @@ export default function StarPage() {
       return;
     }
 
-    if (initializedRef.current) return;
+    if (initialized) return;
 
     // Only set camera target if we are not navigating via search
     const step = useSceneStore.getState().searchNavigationStep;
     if (step !== 'to_planet') {
+      debugLog('StarPage: initializing camera to star coordinates (not to planet)');
       const posX = activeStar.position_x * 5.5;
       const posY = activeStar.position_y * 3.5;
       setCameraTarget([posX, posY - 2.8, 6.8], [posX, posY, 0]);
       setActivePlanetId(null);
       setTrackedPosition(null);
       setTransitioning(false);
+    } else {
+      debugLog('StarPage: skipping star coordinates initialization (navigating to planet)');
     }
     
     setActiveStarId(activeStar.id);
-    initializedRef.current = true;
-  }, [activeStar, starsLoading, setCameraTarget, setActiveStarId, setActivePlanetId, setTrackedPosition, setTransitioning, router]);
+    setInitialized(true);
+  }, [activeStar, starsLoading, setCameraTarget, setActiveStarId, setActivePlanetId, setTrackedPosition, setTransitioning, router, initialized]);
 
   // Handle zoom to planet step when routing from search transition
   useEffect(() => {
-    if (searchNavigationStep === 'to_planet' && searchTargetPlanetId) {
+    debugLog('StarPage zoom to planet check', {
+      initialized,
+      searchNavigationStep,
+      searchTargetPlanetId,
+    });
+    if (initialized && searchNavigationStep === 'to_planet' && searchTargetPlanetId) {
+      debugLog('StarPage: triggering active planet ID focus', { planetId: searchTargetPlanetId });
       setActivePlanetId(searchTargetPlanetId);
       setTrackedPosition(null);
       setTransitioning(false);
       // Clear search target step so we don't repeat this
       setSearchTarget(null, null, 'idle');
     }
-  }, [searchNavigationStep, searchTargetPlanetId, setActivePlanetId, setTrackedPosition, setTransitioning, setSearchTarget]);
+  }, [initialized, searchNavigationStep, searchTargetPlanetId, setActivePlanetId, setTrackedPosition, setTransitioning, setSearchTarget]);
 
   // Prefetch planet detail routes and home page for quick navigation
   useEffect(() => {
@@ -165,17 +193,7 @@ export default function StarPage() {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* 2. Star System Footer (Bottom) */}
-      {!activePlanetId && (
-        <div className="flex items-center justify-between w-full relative z-20 text-[9px] text-zinc-500 border-t border-zinc-900/60 pt-3 mt-4">
-          <span className="font-mono uppercase">
-            TRỰC KHÔNG GIAN TRI THỨC VỮNG BỀN | {!planetsLoading ? planets.length : '...'} HÀNH TINH KHẢ SÁT
-          </span>
-          <p className="text-zinc-500 font-mono hidden sm:block">
-            Mỗi hành tinh tự động lưu giữ một khối cơ sở dữ liệu riêng
-          </p>
-        </div>
-      )}
+
 
       {/* 3. Global Fullscreen Reading Overlay */}
       {activePlanetId && <PlanetHud planetId={activePlanetId} onClose={handleClosePlanet} />}

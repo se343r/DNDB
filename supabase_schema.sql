@@ -290,10 +290,10 @@ DECLARE
   v_new_streak integer;
   v_new_total_points integer;
 BEGIN
-  SELECT user_id, total_questions, started_at INTO v_user_id, v_total, v_started_at
-  FROM quiz_sessions WHERE id = p_session_id;
-  SELECT count(*) FILTER (WHERE is_correct) INTO v_score
-  FROM quiz_answers WHERE session_id = p_session_id;
+  SELECT qs.user_id, qs.total_questions, qs.started_at INTO v_user_id, v_total, v_started_at
+  FROM quiz_sessions qs WHERE qs.id = p_session_id;
+  SELECT count(*) FILTER (WHERE qa.is_correct) INTO v_score
+  FROM quiz_answers qa WHERE qa.session_id = p_session_id;
   v_points := v_score * 10;
   IF v_score = v_total THEN v_points := v_points + 5; END IF;
   UPDATE quiz_sessions SET score = v_score, points_earned = v_points,
@@ -301,22 +301,22 @@ BEGIN
     duration_seconds = EXTRACT(EPOCH FROM (now() - v_started_at))::integer
   WHERE id = p_session_id;
   IF v_user_id IS NOT NULL THEN
-    SELECT last_active_date INTO v_last_active FROM profiles WHERE id = v_user_id;
+    SELECT p.last_active_date INTO v_last_active FROM profiles p WHERE p.id = v_user_id;
     IF v_last_active = CURRENT_DATE THEN
       v_new_streak := NULL;
     ELSIF v_last_active = CURRENT_DATE - INTERVAL '1 day' THEN
-      v_new_streak := (SELECT current_streak + 1 FROM profiles WHERE id = v_user_id);
+      v_new_streak := (SELECT p.current_streak + 1 FROM profiles p WHERE p.id = v_user_id);
     ELSE
       v_new_streak := 1;
     END IF;
-    UPDATE profiles SET
-      total_points = total_points + v_points,
-      level = GREATEST(1, FLOOR(SQRT((total_points + v_points) / 100.0))::integer + 1),
-      current_streak = COALESCE(v_new_streak, current_streak),
-      longest_streak = GREATEST(longest_streak, COALESCE(v_new_streak, current_streak)),
+    UPDATE profiles p SET
+      total_points = p.total_points + v_points,
+      level = GREATEST(1, FLOOR(SQRT((p.total_points + v_points) / 100.0))::integer + 1),
+      current_streak = COALESCE(v_new_streak, p.current_streak),
+      longest_streak = GREATEST(p.longest_streak, COALESCE(v_new_streak, p.current_streak)),
       last_active_date = CURRENT_DATE, updated_at = now()
-    WHERE id = v_user_id
-    RETURNING total_points, current_streak INTO v_new_total_points, v_new_streak;
+    WHERE p.id = v_user_id
+    RETURNING p.total_points, p.current_streak INTO v_new_total_points, v_new_streak;
   END IF;
   RETURN QUERY SELECT v_score, v_total, v_points, v_new_total_points, v_new_streak;
 END;

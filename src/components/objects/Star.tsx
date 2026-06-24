@@ -3,7 +3,7 @@
 import React, { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import * as THREE from 'three';
 import { useAudio } from '../providers/AudioProvider';
 import { Star as StarType } from '@/lib/types';
@@ -66,6 +66,7 @@ export const Star: React.FC<StarProps> = ({ star, index, totalStars, introPhase 
   const stringLineRef = useRef<any>(null);
   const [hovered, setHovered] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const { playHover, playClick } = useAudio();
   
   const setCameraTarget = useSceneStore((state) => state.setCameraTarget);
@@ -298,7 +299,7 @@ export const Star: React.FC<StarProps> = ({ star, index, totalStars, introPhase 
 
   const handleClick = (e: any) => {
     e.stopPropagation();
-    if (appPhase === 'quizzes' || appPhase === 'leaderboard') return;
+    if (pathname === '/recommendations' || appPhase === 'quizzes' || appPhase === 'leaderboard') return;
     if (useSceneStore.getState().isTransitioning) return;
     playClick();
     triggerTransition([posX, posY - 2.8, 6.8], [posX, posY, 0]);
@@ -308,7 +309,7 @@ export const Star: React.FC<StarProps> = ({ star, index, totalStars, introPhase 
 
   const handlePointerOver = (e: any) => {
     e.stopPropagation();
-    if (appPhase === 'quizzes' || appPhase === 'leaderboard') return;
+    if (pathname === '/recommendations' || appPhase === 'quizzes' || appPhase === 'leaderboard') return;
     setHovered(true);
     playHover();
     if (typeof window !== 'undefined') document.body.style.cursor = 'pointer';
@@ -316,6 +317,7 @@ export const Star: React.FC<StarProps> = ({ star, index, totalStars, introPhase 
   };
 
   const handlePointerOut = () => {
+    if (pathname === '/recommendations' || appPhase === 'quizzes' || appPhase === 'leaderboard') return;
     setHovered(false);
     if (typeof window !== 'undefined') document.body.style.cursor = 'default';
   };

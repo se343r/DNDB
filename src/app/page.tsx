@@ -162,6 +162,9 @@ export default function HomePage() {
       if (state.quizActive && state.matchedPlanetId) {
         const p = planets.find((planet) => planet.id === state.matchedPlanetId);
         if (p) {
+          // Initialize search target zoom-in sequence to the matched planet on StarPage
+          state.setSearchTarget(p.star_id, p.id, 'to_planet');
+
           state.setActiveStarId(p.star_id);
           state.setActivePlanetId(p.id);
           state.setAppPhase('catalog');
@@ -183,7 +186,7 @@ export default function HomePage() {
         setHomeTransitionState('idle');
       }, 200);
     }
-  }, [homeTransitionState, router, setHomeTransitionState]);
+  }, [homeTransitionState, router, setHomeTransitionState, planets]);
 
   const handleExplore = () => {
     if (triggered.current) return;

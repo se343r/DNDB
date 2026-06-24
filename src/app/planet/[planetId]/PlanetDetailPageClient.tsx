@@ -28,6 +28,7 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
   const setTransitioning = useSceneStore((state) => state.setTransitioning);
   const triggerTransition = useSceneStore((state) => state.triggerTransition);
   const setTrackedPosition = useSceneStore((state) => state.setTrackedPosition);
+  const setAppPhase = useSceneStore((state) => state.setAppPhase);
 
   // Edit states
   const [isEditing, setIsEditing] = useState(false);
@@ -58,6 +59,7 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
     if (initializedRef.current) return;
 
     // Set active IDs so SpaceCanvas renders PlanetDetailScene with the correct planet
+    setAppPhase('catalog');
     setActiveStarId(planet.star_id);
     setActivePlanetId(planet.id);
 
@@ -72,7 +74,7 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
     // Clear transitioning flag (camera has already arrived)
     setTransitioning(false);
     initializedRef.current = true;
-  }, [planet, loading, setActiveStarId, setActivePlanetId, setTransitioning, router]);
+  }, [planet, loading, setAppPhase, setActiveStarId, setActivePlanetId, setTransitioning, router]);
 
   // Prefetch back navigation routes
   useEffect(() => {

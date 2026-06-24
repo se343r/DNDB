@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { MapControls } from '@react-three/drei';
+import { usePathname } from 'next/navigation';
 import { Star } from '../objects/Star';
 import { AnimatedConstellationLines } from '../objects/AnimatedConstellationLines';
 import { useStars } from '@/hooks/useStars';
@@ -12,8 +13,10 @@ export const ConstellationScene: React.FC = () => {
   const setConstellationIntroComplete = useSceneStore((s) => s.setConstellationIntroComplete);
   const setHasPlayedIntro = useSceneStore((s) => s.setHasPlayedIntro);
   const appPhase = useSceneStore((s) => s.appPhase);
+  const pathname = usePathname();
   const isQuizzes = appPhase === 'quizzes';
   const isLeaderboard = appPhase === 'leaderboard';
+  const isRecommendations = pathname === '/recommendations';
 
   useEffect(() => {
     setConstellationIntroComplete(true);
@@ -24,7 +27,7 @@ export const ConstellationScene: React.FC = () => {
 
   return (
     <group>
-      {!isQuizzes && !isLeaderboard && (
+      {!isQuizzes && !isLeaderboard && !isRecommendations && (
         <MapControls
           enableRotate={false}
           enableZoom={true}

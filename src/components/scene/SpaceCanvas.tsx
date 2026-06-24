@@ -2,6 +2,7 @@
 
 import React, { useRef, Component, ErrorInfo, ReactNode } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { usePathname } from 'next/navigation';
 import * as THREE from 'three';
 import { useSceneStore } from '@/store/sceneStore';
 import { ConstellationScene } from './ConstellationScene';
@@ -9,6 +10,7 @@ import { SolarSystemScene } from './SolarSystemScene';
 import { PlanetDetailScene } from './PlanetDetailScene';
 import { CosmicBackground } from './CosmicBackground';
 import { HomeScene } from './HomeScene';
+
 
 
 // 1. Camera Controller component for smooth position & lookAt transitions
@@ -32,6 +34,8 @@ const CameraController: React.FC = () => {
   const transitionActive = useRef(false);
   const shouldSnap = useRef(true); // Snap on initial load
 
+  const pathname = usePathname();
+
   // Reset zoom factor when navigation targets change
   React.useEffect(() => {
     zoomFactor.current = 1.0;
@@ -41,18 +45,18 @@ const CameraController: React.FC = () => {
   const activeStarId = useSceneStore((state) => state.activeStarId);
   const appPhase = useSceneStore((state) => state.appPhase);
 
-  // When isTransitioning, activeStarId, or appPhase changes,
+  // When isTransitioning, activeStarId, appPhase, or pathname changes,
   // snap the camera immediately to the new target.
   React.useEffect(() => {
     shouldSnap.current = true;
-  }, [isTransitioning, activeStarId, appPhase]);
+  }, [isTransitioning, activeStarId, appPhase, pathname]);
 
   // Bind window wheel event to handle custom scroll-to-zoom
   React.useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       const state = useSceneStore.getState();
-      // Disable custom scroll zoom in planet detail view
-      if (state.activePlanetId) return;
+      // Disable custom scroll zoom in planet detail view or recommendations page
+      if (state.activePlanetId || (typeof window !== 'undefined' && window.location.pathname === '/recommendations')) return;
 
       const zoomSpeed = 0.05;
       if (e.deltaY > 0) {
@@ -70,6 +74,24 @@ const CameraController: React.FC = () => {
     // Read isTransitioning synchronously every frame — no async useEffect delay
     const storeState = useSceneStore.getState();
     const activelyTransitioning = storeState.isTransitioning;
+
+    // If on planet detail page, snap or smoothly return camera to [0, 0, 8] looking at [0, 0, 0]
+    if (storeState.activePlanetId && pathname?.startsWith('/planet/')) {
+      if (shouldSnap.current) {
+        state.camera.position.set(0, 0, 8);
+        state.camera.lookAt(0, 0, 0);
+        currentLookAt.current.set(0, 0, 0);
+        shouldSnap.current = false;
+      } else {
+        const targetP = new THREE.Vector3(0, 0, 8);
+        const targetL = new THREE.Vector3(0, 0, 0);
+        const lerpSpeed = 0.08;
+        state.camera.position.lerp(targetP, lerpSpeed);
+        currentLookAt.current.lerp(targetL, lerpSpeed);
+        state.camera.lookAt(currentLookAt.current);
+      }
+      return;
+    }
 
     if (storeState.activePlanetId && !activelyTransitioning) {
       // Keep currentLookAt in sync with the tracked planet position so that
@@ -296,6 +318,7 @@ export const SpaceCanvas: React.FC = () => {
   const appPhase = useSceneStore((state) => state.appPhase);
   const graphicsQuality = useSceneStore((state) => state.graphicsQuality);
   const setGraphicsQuality = useSceneStore((state) => state.setGraphicsQuality);
+  const pathname = usePathname();
 
   // Auto-detect low-end devices on mount
   React.useEffect(() => {
@@ -311,6 +334,9 @@ export const SpaceCanvas: React.FC = () => {
 
   // Determine which scene to render
   const renderScene = () => {
+    if (activePlanetId && pathname?.startsWith('/planet/')) {
+      return <PlanetDetailScene />;
+    }
     if (appPhase === 'home') {
       return <HomeScene />;
     }

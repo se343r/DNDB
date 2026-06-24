@@ -81,13 +81,26 @@ export const AddPlanetModal: React.FC = () => {
     try {
       if (!isSupabaseConfigured) throw new Error('Supabase is not configured');
 
-      const { error: insertErr } = await supabase!
+      const { data, error: insertErr } = await supabase!
         .from('planets')
-        .insert([planetData]);
+        .insert([planetData])
+        .select();
 
       if (insertErr) throw insertErr;
 
       setSuccess(true);
+
+      if (data && data[0]) {
+        const newPlanet = data[0];
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('dnbd_search_target', JSON.stringify({
+            starId: newPlanet.star_id,
+            planetId: newPlanet.id,
+            step: 'to_planet'
+          }));
+        }
+      }
+
       setTimeout(() => {
         handleClose();
         if (typeof window !== 'undefined') {

@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Medal, Flame, Loader2, AlertCircle } from 'lucide-react';
-import { BackButton } from '@/components/ui/BackButton';
 import { useSceneStore } from '@/store/sceneStore';
 import { useAudio } from '@/components/providers/AudioProvider';
 import { useAuth } from '@/hooks/useAuth';
@@ -70,8 +69,6 @@ export default function LeaderboardPage() {
 
   return (
     <div className="relative w-full h-full min-h-screen bg-transparent flex flex-col items-center justify-start p-6 pt-24 text-white overflow-y-auto">
-      <BackButton to="/catalog" />
-
       <div className="w-full max-w-2xl flex flex-col gap-6 relative z-10 pointer-events-auto">
         {/* Banner */}
         <div className="bg-slate-950/80 border border-indigo-500/20 rounded-3xl p-6 md:p-8 backdrop-blur-xl shadow-2xl flex flex-col gap-3">

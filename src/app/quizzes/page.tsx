@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, Check, X, Award, RotateCcw, Loader2, AlertCircle } from 'lucide-react';
-import { BackButton } from '@/components/ui/BackButton';
 import { useAudio } from '@/components/providers/AudioProvider';
 import { useSceneStore } from '@/store/sceneStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -162,7 +161,6 @@ export default function QuizzesPage() {
   if (isLoadingQuiz) {
     return (
       <div className="relative w-full h-full min-h-screen bg-transparent flex flex-col items-center justify-center text-white">
-        <BackButton to="/catalog" />
         <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
         <p className="text-xs text-slate-400 mt-3">Đang tải câu đố từ vũ trụ tri thức...</p>
       </div>
@@ -172,7 +170,6 @@ export default function QuizzesPage() {
   if (loadError && questions.length === 0) {
     return (
       <div className="relative w-full h-full min-h-screen bg-transparent flex flex-col items-center justify-center text-white p-6">
-        <BackButton to="/catalog" />
         <div className="max-w-sm text-center flex flex-col items-center gap-3">
           <AlertCircle className="w-8 h-8 text-rose-400" />
           <p className="text-sm text-slate-300">{loadError}</p>
@@ -191,8 +188,6 @@ export default function QuizzesPage() {
 
   return (
     <div className="relative w-full h-full min-h-screen bg-transparent flex flex-col items-center justify-center p-6 text-white overflow-y-auto">
-      <BackButton to="/catalog" />
-
       <div className="w-full max-w-xl bg-slate-950/80 border border-indigo-500/20 rounded-3xl p-8 backdrop-blur-xl shadow-2xl relative z-10 pointer-events-auto">
         <AnimatePresence mode="wait">
           {!quizComplete ? (

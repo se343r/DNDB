@@ -91,6 +91,14 @@ export function useAuth() {
     setProfile(null);
   }, []);
 
+  const resetPassword = useCallback(async (email: string) => {
+    if (!supabase) return { error: 'Supabase chưa được cấu hình' };
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    return { error: error?.message ?? null };
+  }, []);
+
   return {
     user,
     profile,
@@ -100,6 +108,7 @@ export function useAuth() {
     signInWithEmail,
     signUpWithEmail,
     signOut,
+    resetPassword,
     refreshProfile: () => user && fetchProfile(user.id),
   };
 }

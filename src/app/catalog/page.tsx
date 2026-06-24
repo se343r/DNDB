@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useSceneStore } from '@/store/sceneStore';
 import { useStars } from '@/hooks/useStars';
 import { usePlanets } from '@/hooks/usePlanets';
+import { debugLog } from '@/lib/debug';
 
 export default function CatalogPage() {
   const resetScene = useSceneStore((state) => state.resetScene);
@@ -14,6 +15,9 @@ export default function CatalogPage() {
   const { stars } = useStars();
   const { planets } = usePlanets();
   const router = useRouter();
+
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const activeTargetStarIdRef = useRef<string | null>(null);
 
   const hasPlayedIntro = useSceneStore((state) => state.hasPlayedIntro);
   const [showFlash, setShowFlash] = useState(!hasPlayedIntro);
@@ -31,6 +35,7 @@ export default function CatalogPage() {
     
     // Only reset the scene if we are NOT currently in a search transition sequence
     const step = useSceneStore.getState().searchNavigationStep;
+    debugLog('CatalogPage mount: checked search target step', { step });
     if (step === 'idle') {
       resetScene();
     }
@@ -38,9 +43,16 @@ export default function CatalogPage() {
 
   // Handle sequential search animation: Catalog -> Zoom to Star -> Star page
   useEffect(() => {
+    debugLog('CatalogPage sequential transition check', {
+      searchNavigationStep,
+      searchTargetStarId,
+      starsLength: stars.length,
+    });
     if (searchNavigationStep === 'to_catalog' && searchTargetStarId && stars.length > 0) {
       const starObj = stars.find((s) => s.id === searchTargetStarId);
-      if (starObj) {
+      if (starObj && activeTargetStarIdRef.current !== searchTargetStarId) {
+        activeTargetStarIdRef.current = searchTargetStarId;
+        debugLog('CatalogPage starting transition to star', { starName: starObj.name });
         // Calculate star position
         const posX = starObj.position_x * 5.5;
         const posY = starObj.position_y * 3.5;
@@ -55,17 +67,25 @@ export default function CatalogPage() {
         triggerTransition([posX, posY - 2.8, 6.8], [posX, posY, 0], 1.5);
 
         // 4. After transition completes, set active star and route to star page
-        const timer = setTimeout(() => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+          debugLog('CatalogPage transition to star finished, routing to star page', { starId: searchTargetStarId });
           // Set step to 'to_planet' so that the star page knows to zoom into the planet
           setSearchTarget(searchTargetStarId, searchTargetPlanetId, 'to_planet');
           setActiveStarId(searchTargetStarId);
           router.push(`/star/${searchTargetStarId}`);
+          activeTargetStarIdRef.current = null;
         }, 1500);
-
-        return () => clearTimeout(timer);
       }
     }
   }, [searchNavigationStep, searchTargetStarId, stars, setActiveStarId, triggerTransition, setSearchTarget, searchTargetPlanetId, router]);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     stars.forEach((star) => {
@@ -132,10 +152,7 @@ export default function CatalogPage() {
         </div>
       </div>
 
-      {/* Instruction Footer banner (Bottom-Center) */}
-      <div className="w-full text-center text-slate-600 text-[10px] font-mono z-20 mt-auto pointer-events-none">
-        [ HỆ BẢN ĐỒ CHÀM SAO BẮC ĐẨU - KHẢ NĂNG TƯƠNG TÁC TỰ DO ]
-      </div>
+
     </motion.div>
   );
 }
