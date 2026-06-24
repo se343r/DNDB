@@ -52,7 +52,7 @@ Nhiệm vụ của bạn:
 
     // Call Gemini API using fetch
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${geminiApiKey}`,
       {
         method: 'POST',
         headers: {
