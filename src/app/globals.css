@@ -36,6 +36,9 @@ body {
 }
 
 /* Biography HTML content formatting */
+.biography-content {
+  white-space: pre-line;
+}
 .biography-content p {
   margin-bottom: 1rem;
   text-align: justify;
