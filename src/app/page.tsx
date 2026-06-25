@@ -8,7 +8,7 @@ import { usePlanets } from '@/hooks/usePlanets';
 import { useStars } from '@/hooks/useStars';
 import DnbdIntro from '@/components/ui/DnbdIntro';
 
-const QUIZ_QUESTIONS = [
+const STATIC_QUIZ_QUESTIONS = [
   {
     question: "Bạn thích dành thời gian rảnh của mình để làm gì nhất?",
     options: [
@@ -98,8 +98,20 @@ export default function HomePage() {
   const setQuizPhase = useSceneStore((s) => s.setQuizPhase);
   const setMatchedPlanetId = useSceneStore((s) => s.setMatchedPlanetId);
 
+  const [quizQuestions, setQuizQuestions] = useState<any[]>(STATIC_QUIZ_QUESTIONS);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [quizScores, setQuizScores] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    fetch('/api/quiz/personality')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setQuizQuestions(data);
+        }
+      })
+      .catch((err) => console.error('Error fetching personality questions:', err));
+  }, []);
 
   const handleStartQuiz = () => {
     setCurrentQuestionIndex(0);
@@ -117,7 +129,7 @@ export default function HomePage() {
     });
     setQuizScores(newScores);
 
-    if (currentQuestionIndex < QUIZ_QUESTIONS.length - 1) {
+    if (currentQuestionIndex < quizQuestions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
       let highestStarId = "a7777777-7777-7777-7777-777777777777";
@@ -415,18 +427,18 @@ export default function HomePage() {
                   <div className="w-full h-1 bg-zinc-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-indigo-500 to-pink-500 transition-all duration-300"
-                      style={{ width: `${((currentQuestionIndex + 1) / 5) * 100}%` }}
+                      style={{ width: `${((currentQuestionIndex + 1) / (quizQuestions.length || 1)) * 100}%` }}
                     />
                   </div>
 
                   {/* Question */}
                   <h3 className="text-base sm:text-lg font-bold text-slate-100 leading-snug">
-                    {QUIZ_QUESTIONS[currentQuestionIndex].question}
+                    {quizQuestions[currentQuestionIndex]?.question}
                   </h3>
 
                   {/* Options */}
                   <div className="flex flex-col gap-3">
-                    {QUIZ_QUESTIONS[currentQuestionIndex].options.map((opt, i) => (
+                    {quizQuestions[currentQuestionIndex]?.options.map((opt: any, i: number) => (
                       <button
                         key={i}
                         onClick={() => handleAnswerSelect(opt.scores)}

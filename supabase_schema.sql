@@ -493,3 +493,54 @@ INSERT INTO questions (planet_id, star_id, question_text, options, correct_index
  '["5 sao","6 sao","7 sao","8 sao"]'::jsonb,
  2, 'Chòm sao Bắc Đẩu gồm 7 ngôi sao sáng chính sắp xếp thành hình cái gáo múc nước.', 'easy', 'thiên văn')
 ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- PHẦN 3 — CÂU HỎI TRẮC NGHIỆM TÍNH CÁCH (personality_questions)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS personality_questions (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  question_text text NOT NULL,
+  options       jsonb NOT NULL, -- Array of objects: [{text: "Option A", scores: {"star_id": 2}}]
+  created_at    timestamptz DEFAULT now()
+);
+
+-- Bật RLS
+ALTER TABLE personality_questions ENABLE ROW LEVEL SECURITY;
+
+-- Policy: cho phép xem công khai, chỉ service_role mới sửa được
+DROP POLICY IF EXISTS "Public read personality questions" ON personality_questions;
+CREATE POLICY "Public read personality questions" ON personality_questions FOR SELECT USING (true);
+
+-- Seed bộ câu hỏi trắc nghiệm tính cách mặc định
+INSERT INTO personality_questions (question_text, options) VALUES
+('Bạn thích dành thời gian rảnh của mình để làm gì nhất?', '[
+  {"text": "Đọc sách, thưởng thức nghệ thuật hoặc viết lách", "scores": {"a7777777-7777-7777-7777-777777777777": 2, "a2222222-2222-2222-2222-222222222222": 2}},
+  {"text": "Khám phá công nghệ mới hoặc giải đố logic", "scores": {"a3333333-3333-3333-3333-333333333333": 2, "a1111111-1111-1111-1111-111111111111": 2}},
+  {"text": "Thảo luận về lịch sử, triết lý hoặc chính trị", "scores": {"a5555555-5555-5555-5555-555555555555": 2, "a4444444-4444-4444-4444-444444444444": 2}},
+  {"text": "Lên kế hoạch, rèn luyện kỹ năng và tự học", "scores": {"a8888888-8888-8888-8888-888888888888": 2, "a6666666-6666-6666-6666-666666666666": 2}}
+]'::jsonb),
+('Lĩnh vực nào sau đây kích thích sự tò mò của bạn nhất?', '[
+  {"text": "Văn học cổ điển và các giá trị văn hóa lâu đời", "scores": {"a7777777-7777-7777-7777-777777777777": 3}},
+  {"text": "Công nghệ số, AI và thiết bị thông minh hiện đại", "scores": {"a1111111-1111-1111-1111-111111111111": 3}},
+  {"text": "Y học cứu người và khám phá khoa học vũ trụ", "scores": {"a3333333-3333-3333-3333-333333333333": 3}},
+  {"text": "Nghệ thuật quân binh và tư duy chiến lược", "scores": {"a8888888-8888-8888-8888-888888888888": 3}}
+]'::jsonb),
+('Khi đối mặt với một thử thách phức tạp, bạn thường làm gì?', '[
+  {"text": "Tìm kiếm các giải pháp nghệ thuật, sáng tạo đột phá", "scores": {"a2222222-2222-2222-2222-222222222222": 3}},
+  {"text": "Phân tích sâu sắc bản chất triết lý và đạo đức", "scores": {"a4444444-4444-4444-4444-444444444444": 3}},
+  {"text": "Đứng ra dẫn dắt và tổ chức đội ngũ hành động", "scores": {"a5555555-5555-5555-5555-555555555555": 3}},
+  {"text": "Học hỏi phương pháp từ những chuyên gia đi trước", "scores": {"a6666666-6666-6666-6666-666666666666": 3}}
+]'::jsonb),
+('Hình mẫu danh nhân nào truyền cảm hứng cho bạn nhiều nhất?', '[
+  {"text": "Những người thầy tận tụy khai sáng tri thức trẻ", "scores": {"a6666666-6666-6666-6666-666666666666": 3}},
+  {"text": "Những nhà phát minh kỹ thuật vĩ đại", "scores": {"a1111111-1111-1111-1111-111111111111": 3, "a3333333-3333-3333-3333-333333333333": 2}},
+  {"text": "Những nhạc sĩ, danh họa mang lại vẻ đẹp tâm hồn", "scores": {"a2222222-2222-2222-2222-222222222222": 3, "a7777777-7777-7777-7777-777777777777": 2}},
+  {"text": "Những lãnh tụ dân tộc đấu tranh vì độc lập", "scores": {"a5555555-5555-5555-5555-555555555555": 3, "a8888888-8888-8888-8888-888888888888": 2}}
+]'::jsonb),
+('Khát vọng lớn nhất của bạn đóng góp cho cộng đồng là gì?', '[
+  {"text": "Chia sẻ tri thức, giáo dục thế hệ tương lai", "scores": {"a6666666-6666-6666-6666-666666666666": 3}},
+  {"text": "Bảo vệ nền hòa bình và xây dựng chính trị vững mạnh", "scores": {"a5555555-5555-5555-5555-555555555555": 3, "a8888888-8888-8888-8888-888888888888": 2}},
+  {"text": "Sáng tác tác phẩm văn hóa nghệ thuật lay động lòng người", "scores": {"a7777777-7777-7777-7777-777777777777": 3, "a2222222-2222-2222-2222-222222222222": 2}},
+  {"text": "Phát triển công nghệ giải quyết các vấn đề thiết thực", "scores": {"a1111111-1111-1111-1111-111111111111": 3, "a3333333-3333-3333-3333-333333333333": 2}}
+]'::jsonb);
