@@ -457,13 +457,17 @@ export default function HomePage() {
                     </div>
 
                      <div className="text-sm text-slate-300 leading-relaxed text-justify px-2 max-h-48 overflow-y-auto">
-                       {p?.bio ? (
-                         p.bio.split('\n').filter((p) => p.trim() !== '').map((para, idx) => (
-                           <p key={idx} className="indent-6 mb-2.5">
-                             {para}
-                           </p>
-                         ))
-                       ) : (
+                       {p?.bio ? (() => {
+                         // Strip HTML tags → get clean plain text preview
+                         const div = typeof document !== 'undefined'
+                           ? Object.assign(document.createElement('div'), { innerHTML: p.bio })
+                           : null;
+                         const plain = (div ? (div.textContent || div.innerText || '') : p.bio)
+                           .replace(/\s+/g, ' ').trim();
+                         // Show first ~280 chars
+                         const preview = plain.length > 280 ? plain.slice(0, 280) + '…' : plain;
+                         return <p className="indent-4">{preview}</p>;
+                       })() : (
                          <p>Chưa có thông tin chi tiết.</p>
                        )}
                      </div>

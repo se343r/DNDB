@@ -54,16 +54,18 @@ body {
 }
 /* Headings */
 .biography-content h1 {
-  font-size: 1.4rem;
+  font-size: 2.1rem;
   font-weight: 700;
   margin-top: 1.5rem;
   margin-bottom: 0.5rem;
+  line-height: 1.25;
 }
 .biography-content h2 {
-  font-size: 1.15rem;
+  font-size: 1.73rem;
   font-weight: 700;
   margin-top: 1.25rem;
   margin-bottom: 0.4rem;
+  line-height: 1.3;
 }
 /* Lists */
 .biography-content ul {

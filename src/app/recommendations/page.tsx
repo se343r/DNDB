@@ -141,7 +141,17 @@ export default function RecommendationsPage() {
                     {rec.reason}
                   </span>
                   <p className="text-xs md:text-sm text-slate-300 leading-relaxed font-light">
-                    {rec.bio}
+                    {rec.bio
+                      ? (() => {
+                          // Strip HTML tags to get plain preview text
+                          const div = typeof document !== 'undefined'
+                            ? Object.assign(document.createElement('div'), { innerHTML: rec.bio })
+                            : null;
+                          const plain = div ? (div.textContent || div.innerText || '') : rec.bio;
+                          const trimmed = plain.replace(/\s+/g, ' ').trim();
+                          return trimmed.length > 160 ? trimmed.slice(0, 160) + '…' : trimmed;
+                        })()
+                      : 'Chưa có thông tin về danh nhân này.'}
                   </p>
                 </div>
               </motion.div>

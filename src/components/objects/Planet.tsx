@@ -257,7 +257,7 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
           )}
         </mesh>
 
-        {/* Dynamic Name Label */}
+        {/* Dynamic Name Label — always visible, brighter on hover */}
         {isOrbiting && (
           <Html
             distanceFactor={5}
@@ -268,10 +268,10 @@ export const Planet: React.FC<PlanetProps> = ({ planet, isOrbiting = true, starC
             <div 
               style={{
                 transition: 'all 0.25s ease',
-                opacity: hovered ? 1 : 0,
-                transform: `scale(${hovered ? 1 : 0.85})`
+                opacity: hovered ? 1 : 0.72,
+                transform: `scale(${hovered ? 1.08 : 1})`
               }}
-              className="px-3.5 py-1.5 text-sm font-bold text-white bg-zinc-950/90 border border-zinc-700/50 rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.8)] backdrop-blur-md whitespace-nowrap text-center"
+              className="px-3 py-1 text-xs font-semibold text-white/90 bg-zinc-950/75 border border-zinc-700/40 rounded-lg shadow-[0_0_12px_rgba(0,0,0,0.7)] backdrop-blur-md whitespace-nowrap text-center"
             >
               {planet.name}
             </div>
