@@ -52,6 +52,15 @@ body {
 .biography-content .ql-align-justify {
   text-align: justify;
 }
+.biography-content .ql-indent-1 { padding-left: 3em; }
+.biography-content .ql-indent-2 { padding-left: 6em; }
+.biography-content .ql-indent-3 { padding-left: 9em; }
+.biography-content .ql-indent-4 { padding-left: 12em; }
+.biography-content .ql-indent-5 { padding-left: 15em; }
+.biography-content .ql-indent-6 { padding-left: 18em; }
+.biography-content .ql-indent-7 { padding-left: 21em; }
+.biography-content .ql-indent-8 { padding-left: 24em; }
+.biography-content .ql-indent-9 { padding-left: 27em; }
 .biography-content h1 {
   font-size: 1.5rem;
   font-weight: bold;
