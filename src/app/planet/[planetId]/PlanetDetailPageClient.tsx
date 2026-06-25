@@ -347,7 +347,7 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
                         />
                       ) : (
                         planet.bio.split(/\n\s*\n/).filter((p) => p.trim() !== '').map((para, idx) => (
-                          <p key={idx} className="indent-6 mb-2.5 text-justify">
+                          <p key={idx} className="mb-2.5 text-justify">
                             {para.split('\n').map((line, lIdx) => (
                               <React.Fragment key={lIdx}>
                                 {lIdx > 0 && <br />}

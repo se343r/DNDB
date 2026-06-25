@@ -94,7 +94,7 @@ export const PlanetInfo: React.FC<PlanetInfoProps> = ({ planet, achievements, st
               />
             ) : (
               planet.bio.split(/\n\s*\n/).filter((p) => p.trim() !== '').map((para, idx) => (
-                <p key={idx} className="indent-8 mb-4 text-justify">
+                <p key={idx} className="mb-4 text-justify">
                   {para.split('\n').map((line, lIdx) => (
                     <React.Fragment key={lIdx}>
                       {lIdx > 0 && <br />}

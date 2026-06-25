@@ -42,15 +42,12 @@ body {
 .biography-content p {
   margin-bottom: 1rem;
   text-align: justify;
-  text-indent: 2rem;
 }
 .biography-content .ql-align-center {
   text-align: center;
-  text-indent: 0 !important;
 }
 .biography-content .ql-align-right {
   text-align: right;
-  text-indent: 0 !important;
 }
 .biography-content .ql-align-justify {
   text-align: justify;
