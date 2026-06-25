@@ -322,8 +322,8 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION finish_quiz_session(p_session_id uuid)
-RETURNS TABLE (score smallint, total_questions smallint, points_earned integer,
-               new_total_points integer, new_streak integer) AS $$
+RETURNS TABLE (o_score smallint, o_total_questions smallint, o_points_earned integer,
+               o_new_total_points integer, o_new_streak integer) AS $$
 DECLARE
   v_user_id uuid;
   v_score smallint;

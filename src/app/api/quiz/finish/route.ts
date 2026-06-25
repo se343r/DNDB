@@ -48,10 +48,10 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({
-    score: result.score,
-    total_questions: result.total_questions,
-    points_earned: result.points_earned,
-    new_total_points: result.new_total_points,
-    new_streak: result.new_streak,
+    score: result.o_score,
+    total_questions: result.o_total_questions,
+    points_earned: result.o_points_earned,
+    new_total_points: result.o_new_total_points,
+    new_streak: result.o_new_streak,
   });
 }
