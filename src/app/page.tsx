@@ -456,9 +456,17 @@ export default function HomePage() {
                       </span>
                     </div>
 
-                    <p className="text-sm text-slate-300 leading-relaxed text-justify px-2 max-h-48 overflow-y-auto">
-                      {p?.bio}
-                    </p>
+                     <div className="text-sm text-slate-300 leading-relaxed text-justify px-2 max-h-48 overflow-y-auto">
+                       {p?.bio ? (
+                         p.bio.split('\n').filter((p) => p.trim() !== '').map((para, idx) => (
+                           <p key={idx} className="indent-6 mb-2.5">
+                             {para}
+                           </p>
+                         ))
+                       ) : (
+                         <p>Chưa có thông tin chi tiết.</p>
+                       )}
+                     </div>
 
                     <div className="border-t border-white/5 pt-4 mt-2">
                       <button

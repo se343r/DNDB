@@ -338,9 +338,17 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
                     <BookOpen className="w-3.5 h-3.5 text-indigo-400 mr-2" />
                     <span>Hành trạng & Tiểu sử</span>
                   </div>
-                  <p className="text-xs text-zinc-300 leading-relaxed text-justify bg-zinc-900/10 p-3.5 rounded-xl border border-zinc-900">
-                    {planet.bio || 'Chưa có thông tin chi tiết.'}
-                  </p>
+                  <div className="text-xs text-zinc-300 leading-relaxed text-justify bg-zinc-900/10 p-3.5 rounded-xl border border-zinc-900">
+                    {planet.bio ? (
+                      planet.bio.split('\n').filter((p) => p.trim() !== '').map((para, idx) => (
+                        <p key={idx} className="indent-6 mb-2.5">
+                          {para}
+                        </p>
+                      ))
+                    ) : (
+                      <p>Chưa có thông tin chi tiết.</p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Achievements */}

@@ -83,11 +83,19 @@ export const PlanetInfo: React.FC<PlanetInfoProps> = ({ planet, achievements, st
       </motion.div>
 
       {/* Bio Body */}
-      <motion.div variants={itemVariants} className="mb-10 text-center md:text-left">
-        <h3 className="text-xs uppercase tracking-widest text-white/40 font-semibold mb-3">Tiểu sử</h3>
-        <p className="text-white/80 text-base md:text-lg leading-relaxed font-light">
-          {planet.bio || 'Chưa có thông tin chi tiết về hành tinh này trong vũ trụ dữ liệu.'}
-        </p>
+      <motion.div variants={itemVariants} className="mb-10 text-justify">
+        <h3 className="text-xs uppercase tracking-widest text-white/40 font-semibold mb-3 text-center md:text-left font-mono">Tiểu sử</h3>
+        <div className="text-white/80 text-sm md:text-base leading-relaxed font-light">
+          {planet.bio ? (
+            planet.bio.split('\n').filter((p) => p.trim() !== '').map((para, idx) => (
+              <p key={idx} className="indent-8 mb-4">
+                {para}
+              </p>
+            ))
+          ) : (
+            <p>Chưa có thông tin chi tiết về hành tinh này trong vũ trụ dữ liệu.</p>
+          )}
+        </div>
       </motion.div>
 
       {/* Achievements Timeline */}

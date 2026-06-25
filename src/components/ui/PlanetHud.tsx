@@ -209,10 +209,16 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId, onClose }) => {
 
               {!isEditing ? (
                 <div className="w-full">
-                  <div className="bg-white/5 border border-white/5 rounded-3xl p-6 md:p-10 mb-12 shadow-2xl">
-                    <p className="text-base md:text-lg text-zinc-300 leading-relaxed text-justify md:text-left font-light">
-                      {planet.bio || 'Chưa có thông tin chi tiết.'}
-                    </p>
+                  <div className="bg-white/5 border border-white/5 rounded-3xl p-6 md:p-10 mb-12 shadow-2xl text-justify leading-relaxed text-zinc-300 font-light text-sm md:text-base">
+                    {planet.bio ? (
+                      planet.bio.split('\n').filter((p) => p.trim() !== '').map((para, idx) => (
+                        <p key={idx} className="indent-8 mb-4">
+                          {para}
+                        </p>
+                      ))
+                    ) : (
+                      <p>Chưa có thông tin chi tiết.</p>
+                    )}
                   </div>
                   
                   {achievements.length > 0 && (
