@@ -28,7 +28,7 @@ export default function RootLayout({
       className={`${inter.className} h-full antialiased overflow-hidden select-none`}
     >
       <body className="h-full bg-black text-white relative flex flex-col">
-        {/* Global Chunk Load Error Auto-Reload handler */}
+        {/* Global Chunk Load Error Auto-Reload handler & DevTools/Debugger Blocker */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -43,6 +43,59 @@ export default function RootLayout({
                   window.location.reload();
                 }
               }, true);
+
+              (function() {
+                var isLocal = window.location.hostname === 'localhost' || 
+                              window.location.hostname === '127.0.0.1' || 
+                              window.location.hostname.indexOf('192.168.') === 0 || 
+                              window.location.hostname.endsWith('.local');
+                if (isLocal) return;
+
+                // Disable right-click context menu
+                document.addEventListener('contextmenu', function(e) {
+                  e.preventDefault();
+                });
+
+                // Disable keyboard shortcuts
+                document.addEventListener('keydown', function(e) {
+                  // F12 (123)
+                  if (e.keyCode === 123) {
+                    e.preventDefault();
+                    return false;
+                  }
+                  // Ctrl+Shift+I (73), Ctrl+Shift+J (74), Ctrl+Shift+C (67)
+                  if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) {
+                    e.preventDefault();
+                    return false;
+                  }
+                  // Ctrl+U (85) (View Source)
+                  if (e.ctrlKey && e.keyCode === 85) {
+                    e.preventDefault();
+                    return false;
+                  }
+                  // Ctrl+S (83) (Save page)
+                  if (e.ctrlKey && e.keyCode === 83) {
+                    e.preventDefault();
+                    return false;
+                  }
+                  // Ctrl+P (80) (Print page)
+                  if (e.ctrlKey && e.keyCode === 80) {
+                    e.preventDefault();
+                    return false;
+                  }
+                });
+
+                // Infinite debugger loop to halt execution if DevTools is opened
+                setInterval(function() {
+                  (function() {
+                    return function(type) {
+                      if ((type + "").indexOf("function") !== -1) {
+                        debugger;
+                      }
+                    };
+                  })()("bugger");
+                }, 100);
+              })();
             `,
           }}
         />
