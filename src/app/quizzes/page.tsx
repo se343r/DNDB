@@ -61,6 +61,36 @@ export default function QuizzesPage() {
   const [finishResult, setFinishResult] = useState<FinishResult | null>(null);
   const [questionStartedAt, setQuestionStartedAt] = useState<number>(Date.now());
 
+  // Cheat detection state
+  const [showCheatWarning, setShowCheatWarning] = useState(false);
+  const [cheatCount, setCheatCount] = useState(0);
+
+  useEffect(() => {
+    // Only monitor if the quiz is active, loading is complete, and quiz is not finished
+    if (isLoadingQuiz || quizComplete || questions.length === 0) return;
+
+    const handleFocusLoss = () => {
+      // Trigger warning dialog
+      setShowCheatWarning(true);
+      setCheatCount((prev) => prev + 1);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        handleFocusLoss();
+      }
+    };
+
+    window.addEventListener('blur', handleFocusLoss);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('blur', handleFocusLoss);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isLoadingQuiz, quizComplete, questions.length]);
+
+
   const loadQuiz = async () => {
     setIsLoadingQuiz(true);
     setLoadError(null);
@@ -316,6 +346,41 @@ export default function QuizzesPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Cheat Warning Modal Overlay */}
+      <AnimatePresence>
+        {showCheatWarning && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-md bg-zinc-950/90 border border-rose-500/30 rounded-3xl p-8 shadow-[0_0_50px_rgba(244,63,94,0.15)] flex flex-col items-center text-center gap-6 pointer-events-auto"
+            >
+              <div className="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center animate-pulse">
+                <AlertCircle className="w-8 h-8 text-rose-500" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-rose-500 tracking-wide">Cảnh Báo Gian Lận!</h2>
+                <p className="text-xs text-rose-300/70 font-mono mt-1">Lần vi phạm: {cheatCount}</p>
+              </div>
+              <p className="text-sm text-slate-300 leading-relaxed font-light">
+                Hệ thống phát hiện bạn vừa chuyển tab hoặc rời khỏi cửa sổ làm việc trong lúc làm bài. Để đảm bảo tính công bằng của Thử thách Tri thức, vui lòng không tra cứu thông tin ở nguồn ngoài.
+              </p>
+              <button
+                onClick={() => {
+                  playClick();
+                  setShowCheatWarning(false);
+                }}
+                onMouseEnter={playHover}
+                className="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold tracking-wide border border-rose-500/30 hover:shadow-[0_0_20px_rgba(244,63,94,0.3)] transition duration-200 cursor-pointer"
+              >
+                Tôi đã hiểu & Tiếp tục làm bài
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
