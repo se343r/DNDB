@@ -357,26 +357,29 @@ export const Star: React.FC<StarProps> = ({ star, index, totalStars, introPhase 
         </sprite>
       )}
 
-      {/* Label Tooltip */}
+      {/* Star Name Label — always visible, brighter on hover */}
       {appPhase !== 'quizzes' && appPhase !== 'leaderboard' && (
         <Html
           distanceFactor={6}
-          position={[0, 0.45, 0]}
+          position={[0, 0.52, 0]}
           center
           style={{ pointerEvents: 'none' }}
         >
           <div
-            className="px-4 py-2 rounded-2xl border text-sm font-bold whitespace-nowrap flex items-center gap-2 backdrop-blur-md bg-zinc-950/90 text-white"
+            className="px-4 py-2 rounded-2xl border text-base font-bold whitespace-nowrap backdrop-blur-md bg-zinc-950/80 text-white"
             style={{
-              transition: 'all 0.3s ease',
-              opacity: hovered ? 1 : 0,
-              transform: `scale(${hovered ? 1 : 0.8})`,
-              borderColor: 'rgba(255,255,255,0.2)',
-              boxShadow: '0 0 20px rgba(200,210,255,0.15)'
+              transition: 'all 0.25s ease',
+              opacity: hovered ? 1 : 0.85,
+              transform: `scale(${hovered ? 1.08 : 1})`,
+              borderColor: hovered ? star.color : 'rgba(255,255,255,0.15)',
+              boxShadow: hovered
+                ? `0 0 20px ${star.color}55`
+                : '0 0 12px rgba(0,0,0,0.6)',
+              color: hovered ? star.color : '#ffffff',
+              letterSpacing: '0.02em',
             }}
           >
-            {star.icon && <span className="text-base">{star.icon}</span>}
-            <span>{star.name}</span>
+            {star.name}
           </div>
         </Html>
       )}
