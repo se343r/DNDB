@@ -35,14 +35,14 @@ body {
   box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
 }
 
-/* Biography HTML content formatting */
-.biography-content {
-  white-space: pre-line;
-}
+/* Biography HTML content — renders Quill-generated HTML faithfully */
 .biography-content p {
-  margin-bottom: 1rem;
-  text-align: justify;
+  margin-bottom: 0.75rem;
 }
+.biography-content p:last-child {
+  margin-bottom: 0;
+}
+/* Quill alignment classes */
 .biography-content .ql-align-center {
   text-align: center;
 }
@@ -52,46 +52,35 @@ body {
 .biography-content .ql-align-justify {
   text-align: justify;
 }
-.biography-content .ql-indent-1 { padding-left: 3em; }
-.biography-content .ql-indent-2 { padding-left: 6em; }
-.biography-content .ql-indent-3 { padding-left: 9em; }
-.biography-content .ql-indent-4 { padding-left: 12em; }
-.biography-content .ql-indent-5 { padding-left: 15em; }
-.biography-content .ql-indent-6 { padding-left: 18em; }
-.biography-content .ql-indent-7 { padding-left: 21em; }
-.biography-content .ql-indent-8 { padding-left: 24em; }
-.biography-content .ql-indent-9 { padding-left: 27em; }
+/* Headings */
 .biography-content h1 {
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: 1.4rem;
+  font-weight: 700;
   margin-top: 1.5rem;
-  margin-bottom: 0.75rem;
-}
-.biography-content h2 {
-  font-size: 1.25rem;
-  font-weight: bold;
-  margin-top: 1.25rem;
   margin-bottom: 0.5rem;
 }
+.biography-content h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-top: 1.25rem;
+  margin-bottom: 0.4rem;
+}
+/* Lists */
 .biography-content ul {
   list-style-type: disc;
   padding-left: 1.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 .biography-content ol {
   list-style-type: decimal;
   padding-left: 1.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 .biography-content li {
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
 }
-.biography-content strong {
-  font-weight: bold;
-}
-.biography-content em {
-  font-style: italic;
-}
-.biography-content u {
-  text-decoration: underline;
-}
+/* Inline styles */
+.biography-content strong { font-weight: 700; }
+.biography-content em { font-style: italic; }
+.biography-content u { text-decoration: underline; }
+.biography-content s { text-decoration: line-through; }
