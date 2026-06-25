@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
+
+/** Fire-and-forget: insert one chatbot_usage row (metadata only, no message content) */
+async function trackChatbotUsage(userId: string | null, sessionId: string, pathname: string) {
+  try {
+    const supabase = createServerSupabaseClient();
+    await supabase.from('chatbot_usage').insert({
+      user_id: userId ?? null,
+      session_id: sessionId,
+      pathname,
+    });
+  } catch {
+    // Never block the chat response for a tracking failure
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, pathname } = await req.json();
+    const { messages, pathname, userId, sessionId } = await req.json();
+    const sid = sessionId || 'anon';
+    const uid: string | null = userId || null;
 
     const geminiApiKey = process.env.GEMINI_API_KEY;
 
@@ -47,6 +64,8 @@ Nhiệm vụ của bạn:
       } else {
         reply = `AstroBot chào bạn! 👨‍🚀 Bạn đang ở ${pageContext.replace('đang ', '')} Hãy hỏi tôi bất cứ điều gì về chức năng trang này nhé!`;
       }
+      // Track usage (fire-and-forget)
+      trackChatbotUsage(uid, sid, pathname || '');
       return NextResponse.json({ response: reply });
     }
 
@@ -82,6 +101,8 @@ Nhiệm vụ của bạn:
     }
 
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Tôi không nhận được phản hồi từ hệ thống. Hãy thử lại sau nhé!';
+    // Track usage (fire-and-forget, do not await)
+    trackChatbotUsage(uid, sid, pathname || '');
     return NextResponse.json({ response: reply });
   } catch (error: any) {
     console.error('Chat Route Error:', error);

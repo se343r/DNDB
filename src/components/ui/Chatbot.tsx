@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, X, MessageSquare, Sparkles, AlertCircle, Bot } from 'lucide-react';
 import { useAudio } from '../providers/AudioProvider';
+import { supabase } from '@/lib/supabase';
 
 interface Message {
   id: string;
@@ -25,6 +26,23 @@ export const Chatbot: React.FC = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string>('');
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Init session ID (anonymous tracking) + auth user ID
+  useEffect(() => {
+    // Persist anonymous session across page navigations within the same tab
+    let sid = sessionStorage.getItem('chatbot_session_id');
+    if (!sid) {
+      sid = `anon_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      sessionStorage.setItem('chatbot_session_id', sid);
+    }
+    setSessionId(sid);
+    // Get auth user id if logged in
+    supabase?.auth.getUser().then(({ data }) => {
+      setUserId(data?.user?.id ?? null);
+    });
+  }, []);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +112,8 @@ export const Chatbot: React.FC = () => {
         body: JSON.stringify({
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
           pathname,
+          userId,
+          sessionId,
         }),
       });
 

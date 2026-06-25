@@ -212,19 +212,34 @@ CREATE INDEX IF NOT EXISTS idx_answers_session      ON quiz_answers(session_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_points      ON profiles(total_points DESC);
 CREATE INDEX IF NOT EXISTS idx_planet_views_user    ON user_planet_views(user_id);
 
+-- Chatbot usage tracking (metadata only — no message content stored)
+CREATE TABLE IF NOT EXISTS chatbot_usage (
+  id          bigserial PRIMARY KEY,
+  user_id     uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  session_id  text NOT NULL,      -- anonymous session identifier
+  pathname    text,               -- page where chatbot was used
+  created_at  timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chatbot_usage_user       ON chatbot_usage(user_id);
+CREATE INDEX IF NOT EXISTS idx_chatbot_usage_created    ON chatbot_usage(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_chatbot_usage_pathname   ON chatbot_usage(pathname);
+
 -- RLS
 ALTER TABLE profiles          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE questions         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quiz_sessions     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quiz_answers      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_planet_views ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chatbot_usage     ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Public read profiles"        ON profiles;
-DROP POLICY IF EXISTS "Users update own profile"    ON profiles;
-DROP POLICY IF EXISTS "Public read active questions" ON questions;
-DROP POLICY IF EXISTS "Users manage own sessions"   ON quiz_sessions;
-DROP POLICY IF EXISTS "Users manage own answers"    ON quiz_answers;
-DROP POLICY IF EXISTS "Users manage own views"      ON user_planet_views;
+DROP POLICY IF EXISTS \"Users update own profile\"    ON profiles;
+DROP POLICY IF EXISTS \"Public read active questions\" ON questions;
+DROP POLICY IF EXISTS \"Users manage own sessions\"   ON quiz_sessions;
+DROP POLICY IF EXISTS \"Users manage own answers\"    ON quiz_answers;
+DROP POLICY IF EXISTS \"Users manage own views\"      ON user_planet_views;
+DROP POLICY IF EXISTS \"Allow insert chatbot usage\"  ON chatbot_usage;
 
 CREATE POLICY "Public read profiles"         ON profiles    FOR SELECT USING (true);
 CREATE POLICY "Users update own profile"     ON profiles    FOR UPDATE USING (auth.uid() = id);
@@ -236,6 +251,8 @@ CREATE POLICY "Users manage own answers"     ON quiz_answers FOR ALL
   USING (session_id IN (SELECT id FROM quiz_sessions WHERE user_id = auth.uid() OR user_id IS NULL));
 CREATE POLICY "Users manage own views"       ON user_planet_views FOR ALL
   USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+-- Anyone (auth or anon) can insert chatbot usage; only service_role can read
+CREATE POLICY "Allow insert chatbot usage"   ON chatbot_usage FOR INSERT WITH CHECK (true);
 
 -- DB Functions
 CREATE OR REPLACE FUNCTION get_random_questions(
