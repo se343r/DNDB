@@ -209,13 +209,25 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId, onClose }) => {
 
               {!isEditing ? (
                 <div className="w-full">
-                  <div className="bg-white/5 border border-white/5 rounded-3xl p-6 md:p-10 mb-12 shadow-2xl text-justify leading-relaxed text-zinc-300 font-light text-sm md:text-base">
+                  <div className="bg-white/5 border border-white/5 rounded-3xl p-6 md:p-10 mb-12 shadow-2xl leading-relaxed text-zinc-300 font-light text-sm md:text-base">
                     {planet.bio ? (
-                      planet.bio.split('\n').filter((p) => p.trim() !== '').map((para, idx) => (
-                        <p key={idx} className="indent-8 mb-4">
-                          {para}
-                        </p>
-                      ))
+                      /<[a-z][\s\S]*>/i.test(planet.bio) ? (
+                        <div 
+                          className="biography-content text-justify"
+                          dangerouslySetInnerHTML={{ __html: planet.bio }}
+                        />
+                      ) : (
+                        planet.bio.split(/\n\s*\n/).filter((p) => p.trim() !== '').map((para, idx) => (
+                          <p key={idx} className="indent-8 mb-4 text-justify">
+                            {para.split('\n').map((line, lIdx) => (
+                              <React.Fragment key={lIdx}>
+                                {lIdx > 0 && <br />}
+                                {line}
+                              </React.Fragment>
+                            ))}
+                          </p>
+                        ))
+                      )
                     ) : (
                       <p>Chưa có thông tin chi tiết.</p>
                     )}

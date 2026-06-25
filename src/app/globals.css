@@ -34,3 +34,55 @@ body {
   background: rgba(99, 102, 241, 0.45);
   box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
 }
+
+/* Biography HTML content formatting */
+.biography-content p {
+  margin-bottom: 1rem;
+  text-align: justify;
+  text-indent: 2rem;
+}
+.biography-content .ql-align-center {
+  text-align: center;
+  text-indent: 0 !important;
+}
+.biography-content .ql-align-right {
+  text-align: right;
+  text-indent: 0 !important;
+}
+.biography-content .ql-align-justify {
+  text-align: justify;
+}
+.biography-content h1 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+.biography-content h2 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+.biography-content ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+.biography-content ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+.biography-content li {
+  margin-bottom: 0.25rem;
+}
+.biography-content strong {
+  font-weight: bold;
+}
+.biography-content em {
+  font-style: italic;
+}
+.biography-content u {
+  text-decoration: underline;
+}

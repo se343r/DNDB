@@ -338,13 +338,25 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
                     <BookOpen className="w-3.5 h-3.5 text-indigo-400 mr-2" />
                     <span>Hành trạng & Tiểu sử</span>
                   </div>
-                  <div className="text-xs text-zinc-300 leading-relaxed text-justify bg-zinc-900/10 p-3.5 rounded-xl border border-zinc-900">
+                  <div className="text-xs text-zinc-300 leading-relaxed bg-zinc-900/10 p-3.5 rounded-xl border border-zinc-900">
                     {planet.bio ? (
-                      planet.bio.split('\n').filter((p) => p.trim() !== '').map((para, idx) => (
-                        <p key={idx} className="indent-6 mb-2.5">
-                          {para}
-                        </p>
-                      ))
+                      /<[a-z][\s\S]*>/i.test(planet.bio) ? (
+                        <div 
+                          className="biography-content text-justify"
+                          dangerouslySetInnerHTML={{ __html: planet.bio }}
+                        />
+                      ) : (
+                        planet.bio.split(/\n\s*\n/).filter((p) => p.trim() !== '').map((para, idx) => (
+                          <p key={idx} className="indent-6 mb-2.5 text-justify">
+                            {para.split('\n').map((line, lIdx) => (
+                              <React.Fragment key={lIdx}>
+                                {lIdx > 0 && <br />}
+                                {line}
+                              </React.Fragment>
+                            ))}
+                          </p>
+                        ))
+                      )
                     ) : (
                       <p>Chưa có thông tin chi tiết.</p>
                     )}
