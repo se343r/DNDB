@@ -5,14 +5,6 @@ interface FinishBody {
   session_id: string;
 }
 
-/**
- * POST /api/quiz/finish
- * Body: { session_id }
- *
- * Đóng session, tính tổng điểm, và NẾU user đã đăng nhập thì cộng điểm
- * + cập nhật streak vào bảng profiles (qua DB function finish_quiz_session).
- * Trả về kết quả tổng kết để hiển thị màn hình "Hoàn thành thử thách".
- */
 export async function POST(req: NextRequest) {
   let body: FinishBody;
   try {
@@ -26,13 +18,28 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // ── Rate limit: tối đa 20 session/giờ ────────────────────────────────────
+  if (user) {
+    const { data: allowed } = await supabase.rpc('check_quiz_rate_limit', {
+      p_user_id: user.id,
+    });
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Quá nhiều lượt quiz trong 1 giờ. Nghỉ ngơi chút rồi thử lại nhé!' },
+        { status: 429 }
+      );
+    }
+  }
 
   const { data, error } = await supabase.rpc('finish_quiz_session', {
     p_session_id: body.session_id,
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // DB function đã throw exception rõ ràng — trả về message thật
+    return NextResponse.json({ error: error.message }, { status: 403 });
   }
 
   const result = data?.[0];
@@ -44,7 +51,7 @@ export async function POST(req: NextRequest) {
     score: result.score,
     total_questions: result.total_questions,
     points_earned: result.points_earned,
-    new_total_points: result.new_total_points, // null nếu chơi ẩn danh
+    new_total_points: result.new_total_points,
     new_streak: result.new_streak,
   });
 }

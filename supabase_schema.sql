@@ -322,6 +322,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+CREATE OR REPLACE FUNCTION check_quiz_rate_limit(p_user_id uuid)
+RETURNS boolean AS $$
+DECLARE
+  v_count integer;
+BEGIN
+  SELECT count(*)::integer INTO v_count
+  FROM quiz_sessions
+  WHERE user_id = p_user_id
+    AND started_at >= now() - interval '1 hour';
+  
+  RETURN (v_count < 20);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 CREATE OR REPLACE FUNCTION get_recommendations(
   p_planet_id text, p_user_id uuid DEFAULT NULL, p_count integer DEFAULT 3
 )
