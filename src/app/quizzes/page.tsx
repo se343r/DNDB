@@ -60,6 +60,8 @@ export default function QuizzesPage() {
   const [quizComplete, setQuizComplete] = useState(false);
   const [finishResult, setFinishResult] = useState<FinishResult | null>(null);
   const [questionStartedAt, setQuestionStartedAt] = useState<number>(Date.now());
+  const [isFinishing, setIsFinishing] = useState(false);
+  const [finishError, setFinishError] = useState<string | null>(null);
 
   // Cheat detection state
   const [showCheatWarning, setShowCheatWarning] = useState(false);
@@ -69,23 +71,16 @@ export default function QuizzesPage() {
     // Only monitor if the quiz is active, loading is complete, and quiz is not finished
     if (isLoadingQuiz || quizComplete || questions.length === 0) return;
 
-    const handleFocusLoss = () => {
-      // Trigger warning dialog
-      setShowCheatWarning(true);
-      setCheatCount((prev) => prev + 1);
-    };
-
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        handleFocusLoss();
+        setShowCheatWarning(true);
+        setCheatCount((prev) => prev + 1);
       }
     };
 
-    window.addEventListener('blur', handleFocusLoss);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      window.removeEventListener('blur', handleFocusLoss);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [isLoadingQuiz, quizComplete, questions.length]);
@@ -94,6 +89,7 @@ export default function QuizzesPage() {
   const loadQuiz = async () => {
     setIsLoadingQuiz(true);
     setLoadError(null);
+    setFinishError(null);
     try {
       const res = await fetch('/api/quiz/questions?count=5');
       const data = await res.json();
@@ -123,6 +119,7 @@ export default function QuizzesPage() {
 
   const handleAnswerClick = async (optIdx: number) => {
     if (isAnswered || isSubmitting || !sessionId) return;
+    setLoadError(null); // Clear previous errors
     playClick();
     setSelectedIdx(optIdx);
     setIsSubmitting(true);
@@ -153,11 +150,12 @@ export default function QuizzesPage() {
 
   const handleNext = async () => {
     playClick();
-    setSelectedIdx(null);
-    setIsAnswered(false);
-    setFeedback(null);
 
     if (currentIdx + 1 < questions.length) {
+      setSelectedIdx(null);
+      setIsAnswered(false);
+      setFeedback(null);
+      setLoadError(null);
       setCurrentIdx((idx) => idx + 1);
       setQuestionStartedAt(Date.now());
       return;
@@ -165,6 +163,8 @@ export default function QuizzesPage() {
 
     // Câu cuối cùng — gọi finish để chốt điểm + cộng vào profile
     if (sessionId) {
+      setIsFinishing(true);
+      setFinishError(null);
       try {
         const res = await fetch('/api/quiz/finish', {
           method: 'POST',
@@ -175,16 +175,23 @@ export default function QuizzesPage() {
         if (res.ok) {
           setFinishResult(data);
           if (isAuthenticated) refreshProfile();
+          setQuizComplete(true);
+        } else {
+          setFinishError(data.error || 'Không thể gửi kết quả thử thách');
         }
-      } catch {
-        // Không chặn UI nếu finish thất bại — vẫn show kết quả cục bộ
+      } catch (err: any) {
+        setFinishError(err.message || 'Lỗi mạng khi gửi kết quả');
+      } finally {
+        setIsFinishing(false);
       }
+    } else {
+      setQuizComplete(true);
     }
-    setQuizComplete(true);
   };
 
   const handleRestart = () => {
     playClick();
+    setFinishError(null);
     loadQuiz();
   };
 
@@ -281,6 +288,12 @@ export default function QuizzesPage() {
                 })}
               </div>
 
+              {loadError && (
+                <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl text-rose-300 text-xs flex flex-col gap-2">
+                  <p>{loadError}</p>
+                </div>
+              )}
+
               {isAnswered && feedback && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -290,11 +303,20 @@ export default function QuizzesPage() {
                   <p className="text-xs text-slate-300 leading-relaxed font-light">
                     {feedback.explanation}
                   </p>
+
+                  {finishError && (
+                    <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-lg text-rose-300 text-xs leading-relaxed font-mono">
+                      Lỗi: {finishError}
+                    </div>
+                  )}
+
                   <button
                     onClick={handleNext}
+                    disabled={isFinishing}
                     onMouseEnter={playHover}
-                    className="self-end px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full text-xs font-semibold cursor-pointer shadow-lg transition"
+                    className="self-end flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:cursor-not-allowed text-white rounded-full text-xs font-semibold cursor-pointer shadow-lg transition"
                   >
+                    {isFinishing && <Loader2 className="w-3 h-3 animate-spin" />}
                     {currentIdx + 1 < questions.length ? 'Tiếp tục' : 'Xem kết quả'}
                   </button>
                 </motion.div>

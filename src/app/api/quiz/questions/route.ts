@@ -10,7 +10,11 @@ import { createServerSupabaseClient } from '@/lib/supabase-server';
  */
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
-  const starId = searchParams.get('star_id') || null;
+  let starId = searchParams.get('star_id') || null;
+  // Sanitize parameter to avoid 'null' or 'undefined' string comparisons in database
+  if (!starId || starId === 'null' || starId === 'undefined' || !starId.trim()) {
+    starId = null;
+  }
   const count = Math.min(Math.max(Number(searchParams.get('count')) || 10, 1), 20);
 
   const supabase = createServerSupabaseClient();

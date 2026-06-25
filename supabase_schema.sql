@@ -280,16 +280,43 @@ DECLARE
   v_correct_index smallint;
   v_explanation text;
   v_is_correct boolean;
+  v_session_user_id uuid;
+  v_completed_at timestamptz;
 BEGIN
+  -- Verify session exists and get status
+  SELECT user_id, completed_at INTO v_session_user_id, v_completed_at
+  FROM quiz_sessions WHERE id = p_session_id;
+
+  IF v_session_user_id IS NULL AND NOT EXISTS(SELECT 1 FROM quiz_sessions WHERE id = p_session_id) THEN
+    RAISE EXCEPTION 'Phiên trả lời không tồn tại';
+  END IF;
+
+  IF v_completed_at IS NOT NULL THEN
+    RAISE EXCEPTION 'Phiên trả lời đã được hoàn thành, không thể thêm đáp án';
+  END IF;
+
+  -- Security validation: session owner check
+  IF v_session_user_id IS NOT NULL AND (auth.uid() IS NULL OR auth.uid() <> v_session_user_id) THEN
+    RAISE EXCEPTION 'Bạn không có quyền trả lời cho phiên này';
+  END IF;
+
+  -- Prevent duplicate answers for the same question within a session
+  IF EXISTS (SELECT 1 FROM quiz_answers WHERE session_id = p_session_id AND question_id = p_question_id) THEN
+    RAISE EXCEPTION 'Câu hỏi này đã được trả lời trước đó';
+  END IF;
+
   SELECT q.correct_index, q.explanation INTO v_correct_index, v_explanation
   FROM questions q WHERE q.id = p_question_id;
-  IF v_correct_index IS NULL THEN RAISE EXCEPTION 'Question not found'; END IF;
+  
+  IF v_correct_index IS NULL THEN 
+    RAISE EXCEPTION 'Không tìm thấy câu hỏi'; 
+  END IF;
+  
   v_is_correct := (p_selected_index = v_correct_index);
+  
   INSERT INTO quiz_answers (session_id, question_id, selected_index, is_correct, time_spent_ms)
-  VALUES (p_session_id, p_question_id, p_selected_index, v_is_correct, p_time_spent_ms)
-  ON CONFLICT (session_id, question_id) DO UPDATE
-    SET selected_index = EXCLUDED.selected_index, is_correct = EXCLUDED.is_correct,
-        time_spent_ms = EXCLUDED.time_spent_ms;
+  VALUES (p_session_id, p_question_id, p_selected_index, v_is_correct, p_time_spent_ms);
+  
   RETURN QUERY SELECT v_is_correct, v_correct_index, v_explanation;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -306,17 +333,44 @@ DECLARE
   v_last_active date;
   v_new_streak integer;
   v_new_total_points integer;
+  v_completed_at timestamptz;
+  v_saved_score smallint;
+  v_saved_points integer;
 BEGIN
-  SELECT qs.user_id, qs.total_questions, qs.started_at INTO v_user_id, v_total, v_started_at
+  SELECT qs.user_id, qs.total_questions, qs.started_at, qs.completed_at, qs.score, qs.points_earned
+  INTO v_user_id, v_total, v_started_at, v_completed_at, v_saved_score, v_saved_points
   FROM quiz_sessions qs WHERE qs.id = p_session_id;
-  SELECT count(*) FILTER (WHERE qa.is_correct) INTO v_score
+
+  IF v_started_at IS NULL THEN
+    RAISE EXCEPTION 'Phiên trả lời không tồn tại';
+  END IF;
+
+  -- Security validation: session owner check
+  IF v_user_id IS NOT NULL AND (auth.uid() IS NULL OR auth.uid() <> v_user_id) THEN
+    RAISE EXCEPTION 'Bạn không có quyền hoàn thành phiên này';
+  END IF;
+
+  -- Idempotency check: if already completed, return cached values immediately
+  IF v_completed_at IS NOT NULL THEN
+    IF v_user_id IS NOT NULL THEN
+      SELECT p.total_points, p.current_streak INTO v_new_total_points, v_new_streak
+      FROM profiles p WHERE p.id = v_user_id;
+    END IF;
+    RETURN QUERY SELECT v_saved_score, v_total, v_saved_points, v_new_total_points, v_new_streak;
+    RETURN;
+  END IF;
+
+  SELECT COALESCE(count(*) FILTER (WHERE qa.is_correct), 0)::smallint INTO v_score
   FROM quiz_answers qa WHERE qa.session_id = p_session_id;
+  
   v_points := v_score * 10;
   IF v_score = v_total THEN v_points := v_points + 5; END IF;
+  
   UPDATE quiz_sessions SET score = v_score, points_earned = v_points,
     completed_at = now(),
     duration_seconds = EXTRACT(EPOCH FROM (now() - v_started_at))::integer
   WHERE id = p_session_id;
+  
   IF v_user_id IS NOT NULL THEN
     SELECT p.last_active_date INTO v_last_active FROM profiles p WHERE p.id = v_user_id;
     IF v_last_active = CURRENT_DATE THEN
@@ -326,6 +380,7 @@ BEGIN
     ELSE
       v_new_streak := 1;
     END IF;
+    
     UPDATE profiles p SET
       total_points = p.total_points + v_points,
       level = GREATEST(1, FLOOR(SQRT((p.total_points + v_points) / 100.0))::integer + 1),
@@ -335,6 +390,7 @@ BEGIN
     WHERE p.id = v_user_id
     RETURNING p.total_points, p.current_streak INTO v_new_total_points, v_new_streak;
   END IF;
+  
   RETURN QUERY SELECT v_score, v_total, v_points, v_new_total_points, v_new_streak;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
