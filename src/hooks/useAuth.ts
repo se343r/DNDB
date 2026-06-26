@@ -60,18 +60,6 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, [fetchProfile]);
 
-  useEffect(() => {
-    if (user) {
-      const email = user.email || 'N/A';
-      const mssv = user.user_metadata?.student_id || 'N/A';
-      const logKey = `logged_${user.id}`;
-      if (typeof window !== 'undefined' && !(window as any)[logKey]) {
-        (window as any)[logKey] = true;
-        console.log(`%c[DNDB Auth]%c Gmail: ${email} | MSSV: ${mssv}`, 'color: #8b5cf6; font-weight: bold;', 'color: #38bdf8;');
-      }
-    }
-  }, [user]);
-
   const signInWithGoogle = useCallback(async () => {
     if (!supabase) return;
     await supabase.auth.signInWithOAuth({
