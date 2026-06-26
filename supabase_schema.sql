@@ -544,3 +544,34 @@ INSERT INTO personality_questions (question_text, options) VALUES
   {"text": "Sáng tác tác phẩm văn hóa nghệ thuật lay động lòng người", "scores": {"a7777777-7777-7777-7777-777777777777": 3, "a2222222-2222-2222-2222-222222222222": 2}},
   {"text": "Phát triển công nghệ giải quyết các vấn đề thiết thực", "scores": {"a1111111-1111-1111-1111-111111111111": 3, "a3333333-3333-3333-3333-333333333333": 2}}
 ]'::jsonb);
+
+-- ============================================================
+-- PHẦN 4 — EMAIL VÀ MSSV TRÊN CÁC HỒ SƠ NGƯỜI DÙNG (PROFILES)
+-- ============================================================
+
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS student_id text;
+
+-- Cập nhật dữ liệu cho các tài khoản cũ từ auth.users
+UPDATE public.profiles p
+SET email = u.email,
+    student_id = u.raw_user_meta_data->>'student_id'
+FROM auth.users u
+WHERE p.id = u.id;
+
+-- Cập nhật Trigger hàm để tự động điền email và student_id khi đăng ký tài khoản mới
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, display_name, avatar_url, email, student_id)
+  VALUES (
+    new.id,
+    COALESCE(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    new.raw_user_meta_data->>'avatar_url',
+    new.email,
+    new.raw_user_meta_data->>'student_id'
+  );
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
