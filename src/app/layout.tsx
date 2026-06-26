@@ -7,6 +7,7 @@ import { Header } from "@/components/ui/Header";
 import { AddPlanetModal } from "@/components/ui/AddPlanetModal";
 import { NebulaBackground } from "@/components/ui/NebulaBackground";
 import { Chatbot } from "@/components/ui/Chatbot";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -120,10 +121,8 @@ export default function RootLayout({
           {/* Assistant chatbot overlay */}
           <Chatbot />
         </AudioProvider>
+        <Analytics />
       </body>
     </html>
   );
 }
-
-
-
