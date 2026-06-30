@@ -631,20 +631,24 @@ export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
       <div className="h-2 flex-shrink-0" />
 
       {/* Book Container wrapper (centering and stable aspect ratio layout constraints) */}
-      <div className="flex-grow flex-shrink min-h-0 relative w-full flex items-center justify-center bg-transparent overflow-hidden max-h-[72vh] md:max-h-[76vh]">
+      <div className="flex-grow flex-shrink min-h-0 relative w-full flex flex-col md:flex-row items-center justify-center bg-transparent overflow-hidden max-h-[72vh] md:max-h-[76vh] p-2">
+        {/* Video Player (absolute centered in left half on desktop, relative stacked on mobile) */}
+        {activePage === 0 && (
+          <div
+            className="relative md:absolute md:left-1/4 md:top-1/2 h-[35vh] md:h-full aspect-[9/16] max-h-full rounded-2xl border border-white/10 overflow-hidden shadow-2xl bg-black flex items-center justify-center animate-fade-in z-20 mb-4 md:mb-0"
+            style={isMobile ? {} : { transform: 'translate(-50%, -50%)' }}
+          >
+            <iframe
+              src={getEmbedUrl(videoUrl)}
+              title="YouTube video player"
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        )}
+
         <div className="w-auto h-full aspect-[5/6] md:aspect-[5/3] max-h-full flex items-center justify-center relative">
-          {/* Video Player beside closed book (unmounts when book is flipped open) */}
-          {activePage === 0 && (
-            <div className="absolute left-[100%] ml-4 md:ml-6 top-0 bottom-0 h-full aspect-[9/16] max-h-full rounded-2xl border border-white/10 overflow-hidden shadow-2xl bg-black flex items-center justify-center animate-fade-in z-20">
-              <iframe
-                src={getEmbedUrl(videoUrl)}
-                title="YouTube video player"
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
-            </div>
-          )}
         
         {/* HTMLFlipBook dynamic viewport */}
         <HTMLFlipBook
