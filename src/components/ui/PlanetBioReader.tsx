@@ -634,7 +634,7 @@ export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
       <div className="flex-grow flex-shrink min-h-0 relative w-full flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 bg-transparent overflow-hidden max-h-[72vh] md:max-h-[76vh] p-2">
         {/* Video Player beside closed book (unmounts when book is flipped open) */}
         {activePage === 0 && (
-          <div className="flex-shrink-0 w-[140px] h-[240px] md:w-[210px] md:h-[370px] rounded-2xl border border-white/10 overflow-hidden shadow-2xl bg-black relative flex items-center justify-center animate-fade-in">
+          <div className="flex-shrink-0 h-[45vh] md:h-full aspect-[9/16] max-h-full rounded-2xl border border-white/10 overflow-hidden shadow-2xl bg-black relative flex items-center justify-center animate-fade-in">
             <iframe
               src={getEmbedUrl(videoUrl)}
               title="YouTube video player"
