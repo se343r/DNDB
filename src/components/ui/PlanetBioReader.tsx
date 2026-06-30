@@ -152,6 +152,7 @@ const Page = React.forwardRef<HTMLDivElement, any>((props, ref) => {
       ref={ref}
       className={`relative w-full h-full flex flex-col justify-between overflow-hidden shadow-inner ${props.className || ''}`}
       style={{ ...props.style, ...props.customStyle }}
+      onClick={props.onClick}
     >
       {props.children}
     </div>
@@ -214,7 +215,12 @@ export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
 }) => {
   const bookRef = useRef<any>(null);
   const [activePage, setActivePage] = useState(0);
+  const [showVideo, setShowVideo] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setShowVideo(true);
+  }, [planetId]);
 
   // Local state for the mini quiz inside the book
   const [quizSelectedOption, setQuizSelectedOption] = useState<string | null>(null);
@@ -531,9 +537,15 @@ export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
 
   const handleFlip = (e: any) => {
     setActivePage(e.data);
+    if (e.data > 0) {
+      setShowVideo(false);
+    }
   };
 
   const handleGoToDot = (dotIdx: number) => {
+    if (dotIdx > 0) {
+      setShowVideo(false);
+    }
     if (bookRef.current && bookRef.current.pageFlip()) {
       if (dotIdx === 0) {
         bookRef.current.pageFlip().turnToPage(0);
@@ -633,7 +645,7 @@ export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
       {/* Book Container wrapper (centering and stable aspect ratio layout constraints) */}
       <div className="flex-grow flex-shrink min-h-0 relative w-full flex flex-col md:flex-row items-center justify-center bg-transparent overflow-hidden max-h-[72vh] md:max-h-[76vh] p-2">
         {/* Video Player (absolute centered in left half on desktop, relative stacked on mobile) */}
-        {activePage === 0 && (
+        {activePage === 0 && showVideo && (
           <div
             className="relative md:absolute md:left-1/4 md:top-1/2 h-[35vh] md:h-full aspect-[9/16] max-h-full rounded-2xl border border-white/10 overflow-hidden shadow-2xl bg-black flex items-center justify-center animate-fade-in z-20 mb-4 md:mb-0"
             style={isMobile ? {} : { transform: 'translate(-50%, -50%)' }}
@@ -679,7 +691,8 @@ export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
                 <Page
                   key="front-cover"
                   customStyle={frontCoverStyle}
-                  className="cosmic-page-cover border-r border-zinc-900/60 p-6 md:p-8 flex flex-col justify-center items-center text-center relative"
+                  className="cosmic-page-cover border-r border-zinc-900/60 p-6 md:p-8 flex flex-col justify-center items-center text-center relative cursor-pointer"
+                  onClick={() => setShowVideo(false)}
                 >
                   {avatarUrl && (
                     <div 
