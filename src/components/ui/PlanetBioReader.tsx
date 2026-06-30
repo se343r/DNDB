@@ -631,21 +631,20 @@ export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
       <div className="h-2 flex-shrink-0" />
 
       {/* Book Container wrapper (centering and stable aspect ratio layout constraints) */}
-      <div className="flex-grow flex-shrink min-h-0 relative w-full flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 bg-transparent overflow-hidden max-h-[72vh] md:max-h-[76vh] p-2">
-        {/* Video Player beside closed book (unmounts when book is flipped open) */}
-        {activePage === 0 && (
-          <div className="flex-shrink-0 h-[45vh] md:h-full aspect-[9/16] max-h-full rounded-2xl border border-white/10 overflow-hidden shadow-2xl bg-black relative flex items-center justify-center animate-fade-in">
-            <iframe
-              src={getEmbedUrl(videoUrl)}
-              title="YouTube video player"
-              className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          </div>
-        )}
-
+      <div className="flex-grow flex-shrink min-h-0 relative w-full flex items-center justify-center bg-transparent overflow-hidden max-h-[72vh] md:max-h-[76vh]">
         <div className="w-auto h-full aspect-[5/6] md:aspect-[5/3] max-h-full flex items-center justify-center relative">
+          {/* Video Player beside closed book (unmounts when book is flipped open) */}
+          {activePage === 0 && (
+            <div className="absolute right-[100%] mr-4 md:mr-6 top-0 bottom-0 h-full aspect-[9/16] max-h-full rounded-2xl border border-white/10 overflow-hidden shadow-2xl bg-black flex items-center justify-center animate-fade-in z-20">
+              <iframe
+                src={getEmbedUrl(videoUrl)}
+                title="YouTube video player"
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          )}
         
         {/* HTMLFlipBook dynamic viewport */}
         <HTMLFlipBook
