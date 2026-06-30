@@ -539,12 +539,16 @@ export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
     setActivePage(e.data);
     if (e.data > 0) {
       setShowVideo(false);
+    } else {
+      setShowVideo(true);
     }
   };
 
   const handleGoToDot = (dotIdx: number) => {
     if (dotIdx > 0) {
       setShowVideo(false);
+    } else {
+      setShowVideo(true);
     }
     if (bookRef.current && bookRef.current.pageFlip()) {
       if (dotIdx === 0) {
