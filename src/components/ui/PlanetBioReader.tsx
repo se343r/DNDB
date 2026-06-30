@@ -162,8 +162,7 @@ Page.displayName = 'Page';
 
 // Helper function to extract YouTube embed URL from standard or short link
 const getEmbedUrl = (url: string | undefined): string => {
-  const defaultEmbed = "https://www.youtube.com/embed/Ay8lynMZ4mE?enablejsapi=1";
-  if (!url) return defaultEmbed;
+  if (!url) return '';
   
   let videoId = '';
   if (url.includes('/shorts/')) {
@@ -195,7 +194,7 @@ const getEmbedUrl = (url: string | undefined): string => {
   if (videoId) {
     return `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
   }
-  return defaultEmbed;
+  return '';
 };
 
 export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
@@ -649,7 +648,7 @@ export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
       {/* Book Container wrapper (centering and stable aspect ratio layout constraints) */}
       <div className="flex-grow flex-shrink min-h-0 relative w-full flex flex-col md:flex-row items-center justify-center bg-transparent overflow-hidden max-h-[72vh] md:max-h-[76vh] p-2">
         {/* Video Player (absolute centered in left half on desktop, relative stacked on mobile) */}
-        {activePage === 0 && showVideo && (
+        {activePage === 0 && showVideo && videoUrl && (
           <div
             className="relative md:absolute md:left-1/4 md:top-1/2 h-[35vh] md:h-full aspect-[9/16] max-h-full rounded-2xl border border-white/10 overflow-hidden shadow-2xl bg-black flex items-center justify-center animate-fade-in z-20 mb-4 md:mb-0"
             style={isMobile ? {} : { transform: 'translate(-50%, -50%)' }}
