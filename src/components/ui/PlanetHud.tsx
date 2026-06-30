@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Edit3, Trash2, Award, Check, Loader2, X } from 'lucide-react';
+import { PlanetBioReader } from './PlanetBioReader';
 import { usePlanetDetail } from '@/hooks/usePlanets';
 import { useStars } from '@/hooks/useStars';
 import { useSceneStore } from '@/store/sceneStore';
@@ -177,94 +178,24 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId, onClose }) => {
 
             </div>
 
-            {/* Scrollable Main Content Area */}
-            <div className="flex-1 w-full overflow-y-auto">
-              <div className="max-w-4xl mx-auto px-6 py-8 md:py-12 flex flex-col items-center">
-                
-                {/* Avatar */}
-              <div 
-                className="w-32 h-32 md:w-56 md:h-56 rounded-full border-[4px] bg-zinc-950 overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.5)] mb-8" 
-                style={{ borderColor: starColor }}
-              >
-                <img 
-                  src={planet.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${planet.id}`} 
-                  alt={planet.name} 
-                  className="w-full h-full object-cover" 
-                />
-              </div>
-
-              <span 
-                className="inline-block px-4 py-1.5 rounded-full text-xs font-bold tracking-widest uppercase mb-4"
-                style={{ backgroundColor: `${starColor}15`, color: starColor }}
-              >
-                {parentStar.name}
-              </span>
-              
-              <h1 
-                className="text-4xl md:text-6xl lg:text-7xl font-black font-display text-white text-center mb-10" 
-                style={{ textShadow: `0 0 30px ${starColor}44` }}
-              >
-                {planet.name}
-              </h1>
-
+            {/* Main Content Area */}
+            <div className={`flex-1 w-full flex flex-col items-center justify-center min-h-0 ${!isEditing ? 'p-4 md:p-6 lg:p-8 overflow-hidden' : 'p-4 md:p-6 lg:p-8 overflow-y-auto'}`}>
               {!isEditing ? (
-                <div className="w-full">
-                  <div className="bg-white/5 border border-white/5 rounded-3xl p-6 md:p-10 mb-12 shadow-2xl leading-relaxed text-zinc-300 font-light text-sm md:text-base">
-                    {planet.bio ? (
-                      /<[a-z][\s\S]*>/i.test(planet.bio) ? (
-                        <div 
-                          className="biography-content text-justify"
-                          dangerouslySetInnerHTML={{ __html: planet.bio }}
-                        />
-                      ) : (
-                        planet.bio.split(/\n\s*\n/).filter((p) => p.trim() !== '').map((para, idx) => (
-                          <p key={idx} className="mb-4 text-justify">
-                            {para.split('\n').map((line, lIdx) => (
-                              <React.Fragment key={lIdx}>
-                                {lIdx > 0 && <br />}
-                                {line}
-                              </React.Fragment>
-                            ))}
-                          </p>
-                        ))
-                      )
-                    ) : (
-                      <p>Chưa có thông tin chi tiết.</p>
-                    )}
-                  </div>
-                  
-                  {achievements.length > 0 && (
-                    <div className="w-full mb-20">
-                      <div className="flex items-center gap-3 mb-8 border-b border-white/10 pb-4">
-                        <Award className="w-6 h-6 text-indigo-400" />
-                        <h3 className="text-xl font-bold text-white uppercase tracking-wider font-display">Di sản lưu danh</h3>
-                      </div>
-                      
-                      <div className="space-y-6 relative border-l-2 border-white/10 pl-6 ml-3">
-                        {achievements.map((ach, idx) => (
-                          <div key={ach.id} className="relative group">
-                            {/* Timeline dot */}
-                            <span 
-                              className="absolute -left-[35px] top-1.5 w-4 h-4 rounded-full bg-zinc-950 border-2 transition-transform group-hover:scale-125" 
-                              style={{ borderColor: starColor }} 
-                            />
-                            
-                            <div className="bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-2xl p-6 transition duration-300">
-                              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
-                                <h4 className="text-lg font-bold text-white group-hover:text-indigo-300 transition-colors">{ach.title}</h4>
-                                {ach.year !== undefined && (
-                                  <span className="inline-block w-fit text-xs font-bold text-zinc-400 bg-zinc-900 px-3 py-1 rounded-md font-mono">
-                                    {ach.year > 0 ? ach.year : `TCN ${Math.abs(ach.year)}`}
-                                  </span>
-                                )}
-                              </div>
-                              {ach.description && <p className="text-sm text-zinc-400 leading-relaxed">{ach.description}</p>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                <div className="w-full h-full flex-grow flex flex-col min-h-0">
+                  <PlanetBioReader
+                    bio={planet.bio || ''}
+                    achievements={achievements}
+                    starColor={starColor}
+                    planetId={planet.id}
+                    avatarUrl={planet.avatar_url}
+                    planetName={planet.name}
+                    parentStarName={parentStar.name}
+                    bookCover={planet.book_cover}
+                    bookBackground={planet.book_background}
+                    quizQuestion={planet.quiz_question}
+                    quizOptions={planet.quiz_options}
+                    quizCorrectAnswer={planet.quiz_correct_answer}
+                  />
                 </div>
               ) : (
                 <form onSubmit={handleSave} className="w-full bg-zinc-900/50 backdrop-blur-md border border-zinc-800 rounded-3xl p-6 md:p-10 space-y-6 mb-20">
@@ -305,7 +236,6 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId, onClose }) => {
                   </div>
                 </form>
               )}
-            </div>
             </div>
           </motion.div>
         )}

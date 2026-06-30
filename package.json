@@ -21,9 +21,11 @@
     "howler": "2.2.4",
     "lucide-react": "0.379.0",
     "next": "14.2.3",
+    "page-flip": "^2.0.7",
     "postcss": "8.5.15",
     "react": "18.3.1",
     "react-dom": "18.3.1",
+    "react-pageflip": "^2.0.3",
     "three": "0.165.0",
     "zustand": "4.5.2"
   },

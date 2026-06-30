@@ -32,6 +32,11 @@ CREATE TABLE IF NOT EXISTS planets (
   orbit_speed  float DEFAULT 1,
   planet_seed  integer NOT NULL UNIQUE,
   planet_size  float DEFAULT 1,
+  book_cover   text,
+  book_background text,
+  quiz_question text,
+  quiz_options text,
+  quiz_correct_answer text,
   created_at   timestamptz DEFAULT now()
 );
 

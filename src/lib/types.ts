@@ -20,6 +20,11 @@ export interface Planet {
   orbit_speed: number;
   planet_seed: number;
   planet_size: number;
+  book_cover?: string;
+  book_background?: string;
+  quiz_question?: string;
+  quiz_options?: string;
+  quiz_correct_answer?: string;
   created_at?: string;
 }
 

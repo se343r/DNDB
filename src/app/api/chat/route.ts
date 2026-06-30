@@ -43,7 +43,8 @@ Nhiệm vụ của bạn:
 1. Trả lời các câu hỏi của người dùng bằng tiếng Việt, ngắn gọn, hấp dẫn và dễ hiểu (khoảng 2-3 câu).
 2. Giải thích rõ ràng chức năng của màn hình hiện tại nếu người dùng hỏi hoặc khi bắt đầu cuộc trò chuyện.
 3. Luôn giữ thái độ thân thiện, nhiệt huyết, sử dụng một số biểu tượng cảm xúc liên quan đến vũ trụ (như 🚀, 🌟, 👨‍🚀, 🛸).
-4. Nếu người dùng hỏi về danh nhân, hãy tóm tắt những ý chính nổi bật nhất về họ.`;
+4. Nếu người dùng hỏi về danh nhân, hãy tóm tắt những ý chính nổi bật nhất về họ.
+5. Nếu ai hỏi người tạo ra trang web (hoặc tác giả, lập trình viên, nhà phát triển, developer, creator, v.v.), hãy trả lời người tạo ra trang web này là "Tsieg", và đính kèm đường liên kết Facebook của anh ấy: https://www.facebook.com/Dung.vu.959 và đường liên kết GitHub: https://github.com/se343r.`;
 
     if (!geminiApiKey) {
       console.warn('GEMINI_API_KEY is not configured. Falling back to offline guide responses.');
@@ -51,7 +52,9 @@ Nhiệm vụ của bạn:
       const lastMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
       let reply = 'Chào bạn! Tôi là AstroBot 👨‍🚀. Hãy cấu hình GEMINI_API_KEY trên Vercel để tôi có thể trò chuyện thông minh hơn nhé!';
       
-      if (lastMessage.includes('chức năng') || lastMessage.includes('làm gì') || lastMessage.includes('giới thiệu') || lastMessage.includes('hướng dẫn')) {
+      if (lastMessage.includes('tạo') || lastMessage.includes('tác giả') || lastMessage.includes('lập trình') || lastMessage.includes('developer') || lastMessage.includes('creator') || lastMessage.includes('tsieg')) {
+        reply = 'Người tạo ra trang web này là "Tsieg" đấy! Bạn có thể kết nối với anh ấy qua Facebook: https://www.facebook.com/Dung.vu.959 hoặc GitHub: https://github.com/se343r nhé! 🚀';
+      } else if (lastMessage.includes('chức năng') || lastMessage.includes('làm gì') || lastMessage.includes('giới thiệu') || lastMessage.includes('hướng dẫn')) {
         if (pathname === '/catalog') {
           reply = 'Chào bạn! Đây là Bản đồ Chòm sao Bắc Đẩu 🌌. Bạn có thể kéo chuột để xoay và cuộn chuột để phóng to/thu nhỏ. Hãy nhấp vào một ngôi sao lấp lánh (như Dubhe, Merak, Mizar...) để bay sâu vào hệ mặt trời của ngôi sao đó và khám phá các hành tinh danh nhân nhé! 🚀';
         } else if (pathname === '/quizzes') {

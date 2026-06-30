@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Edit3, Trash2, BookOpen, Award, Calendar, Sliders, Check, Loader2 } from 'lucide-react';
+import { PlanetBioReader } from '@/components/ui/PlanetBioReader';
 import { usePlanetDetail } from '@/hooks/usePlanets';
 import { useStars } from '@/hooks/useStars';
 import { useSceneStore } from '@/store/sceneStore';
@@ -269,8 +270,8 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
       {/* 2. Grid split content (Center) */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch relative z-10 overflow-hidden min-h-0 pointer-events-auto">
         
-        {/* LEFT 5 COLUMNS: Planet metadata details overlay (Three.js planet sits behind this) */}
-        <div className="lg:col-span-5 bg-zinc-950/45 rounded-2xl border border-zinc-900/80 p-5 flex flex-col justify-between items-center relative min-h-[250px] pointer-events-none">
+        {/* LEFT 4 COLUMNS: Planet metadata details overlay (Three.js planet sits behind this) */}
+        <div className="lg:col-span-4 bg-zinc-950/45 rounded-2xl border border-zinc-900/80 p-5 flex flex-col justify-between items-center relative min-h-[250px] pointer-events-none">
           <div className="absolute top-3 left-4 text-[9px] font-mono text-zinc-500 uppercase tracking-widest flex items-center space-x-2">
             <span className="w-1.5 h-1.5 rounded-full animate-ping" style={{ backgroundColor: starColor }} />
             <span>Cận Cảnh Tinh Cầu Nhân Vật</span>
@@ -302,108 +303,33 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
           </div>
         </div>
 
-        {/* RIGHT 7 COLUMNS: Text profiles / timelines / edit forms */}
-        <div className="lg:col-span-7 bg-zinc-950/45 rounded-2xl border border-zinc-900 p-5 flex flex-col justify-between overflow-y-auto max-h-[460px] lg:max-h-full scrollbar-thin">
+        {/* RIGHT 8 COLUMNS: Text profiles / timelines / edit forms */}
+        <div className={`lg:col-span-8 flex flex-col justify-between min-h-0 ${!isEditing ? 'overflow-hidden w-full h-full p-4 md:p-6 lg:p-8' : 'bg-zinc-950/45 rounded-2xl border border-zinc-900 p-5 overflow-y-auto max-h-[460px] lg:max-h-full scrollbar-thin'}`}>
           
           {!isEditing ? (
             /* Standard read-only view */
-            <div className="space-y-5 flex-1 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span 
-                    className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold font-display"
-                    style={{ backgroundColor: `${starColor}15`, color: starColor }}
-                  >
-                    {parentStar.name}
-                  </span>
-                  <span className="text-[9px] text-zinc-500 font-mono">ĐỒNG BỘ HỆ THỐNG</span>
-                </div>
-
-                <h2 
-                  className="text-2xl font-black font-display text-white mt-2"
-                  style={{ textShadow: `0 0 15px ${starColor}22` }}
-                >
-                  {planet.name}
-                </h2>
-                <p className="text-xs text-indigo-300 font-medium font-display mt-1.5 flex items-center">
-                  <Calendar className="w-3.5 h-3.5 text-indigo-400 mr-1.5" />
-                  <span>Danh nhân đóng góp lĩnh vực {parentStar.name.toLowerCase()}</span>
-                </p>
-
-                <div className="border-t border-zinc-900 my-4" />
-
-                {/* Biography */}
-                <div className="space-y-1.5">
-                  <div className="text-[10px] font-bold text-zinc-400 tracking-wider flex items-center uppercase font-mono">
-                    <BookOpen className="w-3.5 h-3.5 text-indigo-400 mr-2" />
-                    <span>Hành trạng & Tiểu sử</span>
-                  </div>
-                  <div className="text-xs text-zinc-300 leading-relaxed bg-zinc-900/10 p-3.5 rounded-xl border border-zinc-900">
-                    {planet.bio ? (
-                      /<[a-z][\s\S]*>/i.test(planet.bio) ? (
-                        <div 
-                          className="biography-content text-justify"
-                          dangerouslySetInnerHTML={{ __html: planet.bio }}
-                        />
-                      ) : (
-                        planet.bio.split(/\n\s*\n/).filter((p) => p.trim() !== '').map((para, idx) => (
-                          <p key={idx} className="mb-2.5 text-justify">
-                            {para.split('\n').map((line, lIdx) => (
-                              <React.Fragment key={lIdx}>
-                                {lIdx > 0 && <br />}
-                                {line}
-                              </React.Fragment>
-                            ))}
-                          </p>
-                        ))
-                      )
-                    ) : (
-                      <p>Chưa có thông tin chi tiết.</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Achievements */}
-                <div className="space-y-2 mt-5">
-                  <div className="text-[10px] font-bold text-zinc-400 tracking-wider flex items-center uppercase font-mono">
-                    <Award className="w-3.5 h-3.5 text-indigo-400 mr-2" />
-                    <span>Sự nghiệp & Di sản lưu danh</span>
-                  </div>
-
-                  <div className="space-y-2">
-                    {achievements.length > 0 ? (
-                      achievements.map((ach, idx) => (
-                        <div 
-                          key={ach.id}
-                          className="p-3 bg-zinc-900/20 border border-zinc-900 rounded-xl flex items-start space-x-3 hover:bg-zinc-900/30 transition-all"
-                        >
-                          <div 
-                            className="w-5 h-5 rounded-full text-[10px] font-bold font-mono flex items-center justify-center flex-shrink-0 mt-0.5 border"
-                            style={{ borderColor: `${starColor}33`, color: starColor, backgroundColor: `${starColor}08` }}
-                          >
-                            {idx + 1}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between gap-2">
-                              <h4 className="text-xs font-semibold text-white">{ach.title}</h4>
-                              <span className="text-[9px] text-zinc-500 bg-zinc-900 px-1.5 py-0.2 rounded font-mono">
-                                {ach.year ? (ach.year > 0 ? ach.year : `TCN ${Math.abs(ach.year)}`) : ''}
-                              </span>
-                            </div>
-                            {ach.description && (
-                              <p className="text-[11px] text-zinc-400 leading-relaxed mt-1 font-light">{ach.description}</p>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-xs text-zinc-500 italic">Hành tinh này chưa ghi nhận thành tựu cụ thể.</p>
-                    )}
-                  </div>
+            <div className="flex-1 flex flex-col justify-between min-h-0">
+              <div className="flex-1 flex flex-col min-h-0">
+                {/* Biography & Achievements Book */}
+                <div className="flex-grow flex-shrink min-h-0 flex flex-col">
+                  <PlanetBioReader
+                    bio={planet.bio || ''}
+                    achievements={achievements}
+                    starColor={starColor}
+                    planetId={planet.id}
+                    avatarUrl={planet.avatar_url}
+                    planetName={planet.name}
+                    parentStarName={parentStar.name}
+                    bookCover={planet.book_cover}
+                    bookBackground={planet.book_background}
+                    quizQuestion={planet.quiz_question}
+                    quizOptions={planet.quiz_options}
+                    quizCorrectAnswer={planet.quiz_correct_answer}
+                  />
                 </div>
               </div>
 
-              <div className="text-[9px] text-zinc-500 italic mt-6">
+              <div className="text-[9px] text-zinc-500 italic mt-4 flex-shrink-0">
                 * Bạn có thể chỉnh sửa mô tả này bất kỳ lúc nào để bổ sung tư liệu thời đại của anh kiệt.
               </div>
             </div>

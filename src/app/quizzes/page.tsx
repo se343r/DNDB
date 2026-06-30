@@ -224,7 +224,7 @@ export default function QuizzesPage() {
   const currentQuestion = questions[currentIdx];
 
   return (
-    <div className="relative w-full h-full min-h-screen bg-transparent flex flex-col items-center justify-center p-6 text-white overflow-y-auto">
+    <div className="relative w-full h-full min-h-screen bg-transparent flex flex-col items-center justify-start py-6 md:py-12 md:justify-center px-4 md:px-6 text-white overflow-y-auto scrollbar-thin">
       <div className="w-full max-w-xl bg-slate-950/80 border border-indigo-500/20 rounded-3xl p-8 backdrop-blur-xl shadow-2xl relative z-10 pointer-events-auto">
         <AnimatePresence mode="wait">
           {!quizComplete ? (
