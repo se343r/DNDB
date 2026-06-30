@@ -361,7 +361,7 @@ export const Star: React.FC<StarProps> = ({ star, index, totalStars, introPhase 
       {appPhase !== 'quizzes' && appPhase !== 'leaderboard' && (
         <Html
           distanceFactor={6}
-          position={[0, 0.52, 0]}
+          position={[0, star.name === 'Nghệ thuật' ? -0.52 : 0.52, 0]}
           center
           style={{ pointerEvents: 'none' }}
         >

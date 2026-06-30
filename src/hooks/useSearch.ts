@@ -30,7 +30,16 @@ export function useSearch(query: string) {
         ]);
 
         const planets: Planet[] = planetsRes.data || [];
-        const stars: Star[] = starsRes.data || [];
+        const rawStars: Star[] = starsRes.data || [];
+        const stars = rawStars.map((s) => {
+          if (s.id === 'a2222222-2222-2222-2222-222222222222') {
+            return { ...s, position_x: -0.473, position_y: 0.255 };
+          }
+          if (s.id === 'a3333333-3333-3333-3333-333333333333') {
+            return { ...s, position_x: -0.425, position_y: 0.350 };
+          }
+          return s;
+        });
         const achievements = achRes.data || [];
 
         const joined = planets.map((p) => {
