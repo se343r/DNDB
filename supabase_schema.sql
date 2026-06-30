@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS planets (
   quiz_question text,
   quiz_options text,
   quiz_correct_answer text,
+  video_url    text,
   created_at   timestamptz DEFAULT now()
 );
 

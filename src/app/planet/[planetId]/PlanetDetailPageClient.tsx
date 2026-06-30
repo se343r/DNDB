@@ -325,6 +325,7 @@ export default function PlanetDetailPageClient({ planetId }: ClientProps) {
                     quizQuestion={planet.quiz_question}
                     quizOptions={planet.quiz_options}
                     quizCorrectAnswer={planet.quiz_correct_answer}
+                    videoUrl={planet.video_url}
                   />
                 </div>
               </div>

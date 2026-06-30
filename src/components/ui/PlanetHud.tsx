@@ -195,6 +195,7 @@ export const PlanetHud: React.FC<PlanetHudProps> = ({ planetId, onClose }) => {
                     quizQuestion={planet.quiz_question}
                     quizOptions={planet.quiz_options}
                     quizCorrectAnswer={planet.quiz_correct_answer}
+                    videoUrl={planet.video_url}
                   />
                 </div>
               ) : (

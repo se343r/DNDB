@@ -29,6 +29,7 @@ interface PlanetBioReaderProps {
   quizQuestion?: string;
   quizOptions?: string;
   quizCorrectAnswer?: string;
+  videoUrl?: string;
 }
 
 interface Chapter {
@@ -158,6 +159,44 @@ const Page = React.forwardRef<HTMLDivElement, any>((props, ref) => {
 });
 Page.displayName = 'Page';
 
+// Helper function to extract YouTube embed URL from standard or short link
+const getEmbedUrl = (url: string | undefined): string => {
+  const defaultEmbed = "https://www.youtube.com/embed/Ay8lynMZ4mE?enablejsapi=1";
+  if (!url) return defaultEmbed;
+  
+  let videoId = '';
+  if (url.includes('/shorts/')) {
+    const parts = url.split('/shorts/');
+    if (parts[1]) {
+      videoId = parts[1].split('?')[0].split('&')[0];
+    }
+  } else if (url.includes('v=')) {
+    const parts = url.split('v=');
+    if (parts[1]) {
+      videoId = parts[1].split('&')[0];
+    }
+  } else if (url.includes('youtu.be/')) {
+    const parts = url.split('youtu.be/');
+    if (parts[1]) {
+      videoId = parts[1].split('?')[0].split('&')[0];
+    }
+  } else if (url.includes('/embed/')) {
+    const parts = url.split('/embed/');
+    if (parts[1]) {
+      videoId = parts[1].split('?')[0].split('&')[0];
+    }
+  } else {
+    if (url.length >= 8 && url.length <= 15) {
+      videoId = url;
+    }
+  }
+  
+  if (videoId) {
+    return `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
+  }
+  return defaultEmbed;
+};
+
 export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
   bio,
   achievements,
@@ -171,6 +210,7 @@ export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
   quizQuestion,
   quizOptions,
   quizCorrectAnswer,
+  videoUrl,
 }) => {
   const bookRef = useRef<any>(null);
   const [activePage, setActivePage] = useState(0);
@@ -591,7 +631,20 @@ export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
       <div className="h-2 flex-shrink-0" />
 
       {/* Book Container wrapper (centering and stable aspect ratio layout constraints) */}
-      <div className="flex-grow flex-shrink min-h-0 relative w-full flex items-center justify-center bg-transparent overflow-hidden max-h-[72vh] md:max-h-[76vh]">
+      <div className="flex-grow flex-shrink min-h-0 relative w-full flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 bg-transparent overflow-hidden max-h-[72vh] md:max-h-[76vh] p-2">
+        {/* Video Player beside closed book (unmounts when book is flipped open) */}
+        {activePage === 0 && (
+          <div className="flex-shrink-0 w-[140px] h-[240px] md:w-[210px] md:h-[370px] rounded-2xl border border-white/10 overflow-hidden shadow-2xl bg-black relative flex items-center justify-center animate-fade-in">
+            <iframe
+              src={getEmbedUrl(videoUrl)}
+              title="YouTube video player"
+              className="w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        )}
+
         <div className="w-auto h-full aspect-[5/6] md:aspect-[5/3] max-h-full flex items-center justify-center relative">
         
         {/* HTMLFlipBook dynamic viewport */}

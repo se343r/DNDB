@@ -25,6 +25,7 @@ export interface Planet {
   quiz_question?: string;
   quiz_options?: string;
   quiz_correct_answer?: string;
+  video_url?: string;
   created_at?: string;
 }
 
