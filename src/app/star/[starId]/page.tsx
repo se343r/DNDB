@@ -183,7 +183,7 @@ export default function StarPage() {
                 </span>
               </div>
               <h2 className="text-lg font-bold text-white font-display mt-0.5">
-                Học Thuyết Lĩnh vực {activeStar.name}
+                Lĩnh vực {activeStar.name}
               </h2>
             </div>
           </div>

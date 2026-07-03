@@ -192,9 +192,6 @@ export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
           >
             {planetName}
           </h1>
-          <p className="text-zinc-500 text-[10px] font-mono tracking-widest mt-2 uppercase">
-            [ Thư Tịch Anh Kiệt ]
-          </p>
         </div>
 
         {/* Right side: Video player */}
