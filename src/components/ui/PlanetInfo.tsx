@@ -110,6 +110,36 @@ export const PlanetInfo: React.FC<PlanetInfoProps> = ({ planet, achievements, st
         </div>
       </motion.div>
 
+      {/* Video / Multimedia */}
+      {planet.video_url && (
+        <motion.div variants={itemVariants} className="mb-10">
+          <h3 className="text-xs uppercase tracking-widest text-white/40 font-semibold mb-3 text-center md:text-left font-mono">
+            Tư Liệu Video
+          </h3>
+          <div 
+            className="relative w-full rounded-2xl overflow-hidden shadow-2xl bg-black/50 border" 
+            style={{ borderColor: `${starColor}44`, aspectRatio: '16/9' }}
+          >
+            <iframe 
+              src={(() => {
+                const url = planet.video_url;
+                if (!url) return '';
+                const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                const match = url.match(regExp);
+                return (match && match[2].length === 11) 
+                  ? 'https://www.youtube.com/embed/' + match[2] 
+                  : url;
+              })()}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute top-0 left-0 w-full h-full"
+            />
+          </div>
+        </motion.div>
+      )}
+
       {/* Achievements Timeline */}
       <motion.div variants={itemVariants} className="flex-1">
         <h3 className="text-xs uppercase tracking-widest text-white/40 font-semibold mb-6">Thành tựu & Dấu ấn</h3>

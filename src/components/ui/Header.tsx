@@ -132,11 +132,21 @@ export const Header: React.FC = () => {
   return (
     <header className="fixed top-0 left-0 w-full z-30 px-6 py-5 flex items-center justify-between pointer-events-none select-none">
       {/* Top Left: Floating Menu Button and Dropdown */}
-      <div className="relative flex items-center gap-3 pointer-events-none w-32">
+      <div className="relative flex items-center gap-4 pointer-events-none w-auto min-w-[8rem]">
         {!activeStarId && (
-          <div ref={dropdownRef} className="relative pointer-events-auto">
-          {/* Menu Toggle Button */}
-          <button
+          <>
+            {/* Group Logo */}
+            <div className="pointer-events-auto flex items-center justify-center p-1.5 rounded-full bg-white/90 border border-white/20 backdrop-blur-md shadow-[0_0_15px_rgba(255,255,255,0.15)]">
+              <img 
+                src="/favicon.ico" 
+                alt="Logo Nhóm" 
+                className="w-6 h-6 object-contain" 
+              />
+            </div>
+
+            <div ref={dropdownRef} className="relative pointer-events-auto">
+            {/* Menu Toggle Button */}
+            <button
             onClick={() => {
               playClick();
               setMenuOpen(!menuOpen);
@@ -231,6 +241,7 @@ export const Header: React.FC = () => {
             </div>
           )}
         </div>
+        </>
         )}
       </div>
 

@@ -33,7 +33,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (selected_index < 0 || selected_index > 3) {
+  // Loại bỏ check strict 0-3 vì selected_index có thể được convert sang 1-based
+  if (selected_index < 0) {
     return NextResponse.json({ error: 'selected_index không hợp lệ' }, { status: 400 });
   }
 
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabase.rpc('submit_quiz_answer', {
     p_session_id: session_id,
     p_question_id: question_id,
-    p_selected_index: selected_index,
+    p_selected_index: selected_index + 1, // Convert 0-based to 1-based cho DB
     p_time_spent_ms: time_spent_ms ?? null,
   });
 
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     is_correct: result.is_correct,
-    correct_index: result.correct_index,
+    correct_index: result.correct_index - 1, // Convert 1-based từ DB về 0-based cho Client
     explanation: result.explanation,
   });
 }

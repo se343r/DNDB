@@ -728,7 +728,7 @@ export default function DnbdIntro({ onComplete }: DnbdIntroProps) {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.7 }}
-                className="text-3xl md:text-5xl font-extrabold uppercase tracking-[0.2em] leading-normal"
+                className="text-2xl md:text-4xl font-extrabold uppercase tracking-[0.2em] leading-[1.5] py-2"
                 style={{
                   background: 'linear-gradient(135deg, #ffffff 0%, #c4b5fd 50%, #818cf8 100%)',
                   WebkitBackgroundClip: 'text',
@@ -736,14 +736,14 @@ export default function DnbdIntro({ onComplete }: DnbdIntroProps) {
                   backgroundClip: 'text',
                 }}
               >
-                Chào mừng đến
+                Chào mừng đến với
               </motion.h1>
 
               <motion.h2
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6, duration: 0.7 }}
-                className="text-xl md:text-3xl font-extrabold uppercase tracking-[0.15em] mt-4 leading-normal"
+                className="text-lg md:text-2xl font-extrabold uppercase tracking-[0.15em] mt-4 leading-[1.5] py-2"
                 style={{
                   background: 'linear-gradient(135deg, #c4b5fd 0%, #a78bfa 50%, #7c3aed 100%)',
                   WebkitBackgroundClip: 'text',

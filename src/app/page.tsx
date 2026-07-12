@@ -458,10 +458,10 @@ export default function HomePage() {
                   <div className="flex flex-col gap-5 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <span className="text-[10px] font-mono tracking-widest text-pink-400 uppercase font-bold">
-                        Hành Tinh Phù Hợp Của Bạn
+                        Danh Nhân Phù Hợp Với Bạn
                       </span>
                       <h3 className="text-2xl font-bold text-white font-display mt-1">
-                        Hành Tinh {p?.name}
+                        Danh Nhân {p?.name}
                       </h3>
                       <span className="text-[10px] font-mono bg-indigo-500/10 text-indigo-400 px-3 py-1 rounded-full border border-indigo-500/20 uppercase mt-1">
                         Lĩnh vực: {p ? stars.find(s => s.id === p.star_id)?.name : ''}
