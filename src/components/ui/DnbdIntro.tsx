@@ -736,7 +736,7 @@ export default function DnbdIntro({ onComplete }: DnbdIntroProps) {
                   backgroundClip: 'text',
                 }}
               >
-                Chào mừng đến
+                Chào mừng đến với
               </motion.h1>
 
               <motion.h2

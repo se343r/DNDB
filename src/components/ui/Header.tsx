@@ -10,6 +10,7 @@ import SearchBar from './SearchBar';
 import AuthModal from './AuthModal';
 import ChangePasswordModal from './ChangePasswordModal';
 import { debugLog } from '@/lib/debug';
+import { MonitorSmartphone } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const router = useRouter();
@@ -133,7 +134,7 @@ export const Header: React.FC = () => {
     <header className="fixed top-0 left-0 w-full z-30 px-6 py-5 flex items-center justify-between pointer-events-none select-none">
       {/* Top Left: Floating Menu Button and Dropdown */}
       <div className="relative flex items-center gap-3 pointer-events-none w-32">
-        {!activeStarId && (
+        {!(activeStarId || appPhase === 'home') && (
           <div ref={dropdownRef} className="relative pointer-events-auto">
           {/* Menu Toggle Button */}
           <button
