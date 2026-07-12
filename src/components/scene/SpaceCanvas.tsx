@@ -318,7 +318,6 @@ export const SpaceCanvas: React.FC = () => {
   const appPhase = useSceneStore((state) => state.appPhase);
   const graphicsQuality = useSceneStore((state) => state.graphicsQuality);
   const setGraphicsQuality = useSceneStore((state) => state.setGraphicsQuality);
-  const pathname = usePathname();
 
   // Auto-detect low-end devices on mount
   React.useEffect(() => {
