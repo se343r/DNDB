@@ -142,19 +142,28 @@ export const Header: React.FC = () => {
               setMenuOpen(!menuOpen);
             }}
             onMouseEnter={playHover}
-            className="flex items-center justify-center w-16 h-16 rounded-full hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer overflow-hidden p-1 outline-none"
+            className="flex flex-col items-center gap-0 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer outline-none group"
             title="Menu"
           >
-            <img
-              src="/images/logo_new.png"
-              alt="Logo Menu"
-              className="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(0,229,255,0.65)] hover:drop-shadow-[0_0_18px_rgba(0,229,255,0.95)] transition-all duration-300"
-            />
+            {/* Logo Container (25% smaller than w-28 is w-20) */}
+            <div className="w-20 h-20 flex items-center justify-center p-0">
+              <img
+                src="/images/logo_new.png"
+                alt="Logo Menu"
+                className="w-full h-full object-contain filter drop-shadow-[0_0_12px_rgba(0,229,255,0.65)] group-hover:drop-shadow-[0_0_20px_rgba(0,229,255,0.95)] transition-all duration-300"
+              />
+            </div>
+
+            {/* Subtext and Downward Arrow */}
+            <div className="flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 group-hover:text-indigo-400 transition-colors duration-300 -mt-1">
+              <span>Menu</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-zinc-500 group-hover:text-indigo-400 transition-all duration-300 ${menuOpen ? 'rotate-180' : ''}`} />
+            </div>
           </button>
 
           {/* Dropdown Menu */}
           {menuOpen && (
-            <div className="absolute top-18 left-0 w-52 rounded-2xl bg-black/90 border border-white/10 backdrop-blur-lg shadow-2xl py-2 flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute top-28 left-0 w-52 rounded-2xl bg-black/90 border border-white/10 backdrop-blur-lg shadow-2xl py-2 flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200">
               {/* 1. Trang chủ */}
               <button
                 onClick={() => {
