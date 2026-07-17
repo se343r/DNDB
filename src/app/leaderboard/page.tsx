@@ -113,7 +113,6 @@ export default function LeaderboardPage() {
                   <tr className="border-b border-white/5 text-[10px] text-slate-500 font-mono tracking-widest uppercase bg-white/2">
                     <th className="py-4.5 px-6">Hạng</th>
                     <th className="py-4.5 px-6">Nhà thám hiểm</th>
-                    <th className="py-4.5 px-6 text-center">Cấp độ</th>
                     <th className="py-4.5 px-6 text-right">Điểm tích lũy</th>
                     <th className="py-4.5 px-6 text-center">Chuỗi</th>
                   </tr>
@@ -177,9 +176,6 @@ export default function LeaderboardPage() {
                           {row.display_name}
                           {isCurrentUser && <span className="text-indigo-400"> (Bạn)</span>}
                         </td>
-                        <td className="py-4 px-6 text-center text-xs md:text-sm font-mono text-slate-400">
-                          {row.level}
-                        </td>
                         <td
                           className={`py-4 px-6 text-right text-xs md:text-sm font-mono font-bold transition-all duration-700 ${
                             isLanded ? textClass : 'text-indigo-200'
@@ -215,9 +211,6 @@ export default function LeaderboardPage() {
                       </td>
                       <td className="py-4 px-6 text-xs md:text-sm text-indigo-300 font-semibold">
                         {currentUserRow.display_name} (Bạn)
-                      </td>
-                      <td className="py-4 px-6 text-center text-xs md:text-sm font-mono text-slate-400">
-                        {currentUserRow.level}
                       </td>
                       <td className="py-4 px-6 text-right text-xs md:text-sm font-mono font-bold text-indigo-200">
                         {currentUserRow.points.toLocaleString()}

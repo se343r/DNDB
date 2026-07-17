@@ -262,6 +262,15 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.9, ease: 'easeOut' }}
             >
+              {/* Logo */}
+              <div className="w-16 h-16 md:w-20 md:h-20 mb-2 relative flex items-center justify-center filter drop-shadow-[0_0_20px_rgba(139,92,246,0.55)]">
+                <img
+                  src="/favicon.ico"
+                  alt="Logo"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+
               {/* Kicker */}
               <p className="text-[10px] tracking-[0.35em] uppercase font-mono text-indigo-400/70">
                 Hệ bản đồ tri thức vũ trụ
