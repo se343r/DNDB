@@ -142,13 +142,13 @@ export const Header: React.FC = () => {
               setMenuOpen(!menuOpen);
             }}
             onMouseEnter={playHover}
-            className="flex items-center justify-center w-12 h-12 rounded-full border-2 border-white bg-black/60 shadow-[0_0_15px_rgba(255,255,255,0.25)] hover:border-indigo-500 hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300 cursor-pointer overflow-hidden p-1.5 outline-none"
+            className="flex items-center justify-center w-12 h-12 rounded-full hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer overflow-hidden p-1 outline-none"
             title="Menu"
           >
             <img
               src="/images/logo_new.png"
               alt="Logo Menu"
-              className="w-full h-full object-contain filter brightness-0 invert"
+              className="w-full h-full object-contain"
             />
           </button>
 
