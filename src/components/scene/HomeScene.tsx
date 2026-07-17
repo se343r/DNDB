@@ -90,7 +90,7 @@ const ParticleAccretionDisk: React.FC<{ parentRef: React.RefObject<THREE.Group> 
   const quizActive = useSceneStore((s) => s.quizActive);
   const convergeElapsed = useRef(0);
   const supernovaElapsed = useRef(0);
-  const particleCount = 32000;
+  const particleCount = 8000;
 
   // Generate particle coordinate data once
   const [positions, colors, sizes, particleData] = useMemo(() => {
@@ -570,14 +570,14 @@ const ORBIT_PLANES = [
 ];
 
 const STAR_CONFIGS = [
-  { radius: 1.3, speed: 0.50, emissive: '#ffffff', glow: '#aaddff', plane: 0 },
-  { radius: 1.7, speed: 0.43, emissive: '#ffe8aa', glow: '#ffcc66', plane: 1 },
-  { radius: 2.0, speed: 0.38, emissive: '#cceeff', glow: '#88ccff', plane: 2 },
-  { radius: 2.3, speed: 0.34, emissive: '#ffddff', glow: '#cc88ff', plane: 3 },
-  { radius: 2.6, speed: 0.30, emissive: '#ffffff', glow: '#ddeeff', plane: 4 },
-  { radius: 2.9, speed: 0.27, emissive: '#ffeedd', glow: '#ffbb88', plane: 1 },
-  { radius: 3.2, speed: 0.24, emissive: '#ddeeff', glow: '#88aaff', plane: 3 },
-  { radius: 3.5, speed: 0.21, emissive: '#fffacc', glow: '#ffee55', plane: 2 },
+  { radius: 1.3, speed: 0.25, emissive: '#ffffff', glow: '#aaddff', plane: 0 },
+  { radius: 1.7, speed: 0.21, emissive: '#ffe8aa', glow: '#ffcc66', plane: 1 },
+  { radius: 2.0, speed: 0.19, emissive: '#cceeff', glow: '#88ccff', plane: 2 },
+  { radius: 2.3, speed: 0.17, emissive: '#ffddff', glow: '#cc88ff', plane: 3 },
+  { radius: 2.6, speed: 0.15, emissive: '#ffffff', glow: '#ddeeff', plane: 4 },
+  { radius: 2.9, speed: 0.13, emissive: '#ffeedd', glow: '#ffbb88', plane: 1 },
+  { radius: 3.2, speed: 0.12, emissive: '#ddeeff', glow: '#88aaff', plane: 3 },
+  { radius: 3.5, speed: 0.10, emissive: '#fffacc', glow: '#ffee55', plane: 2 },
 ] as const;
 
 // ─── OrbitalStar ─────────────────────────────────────────────────────────────

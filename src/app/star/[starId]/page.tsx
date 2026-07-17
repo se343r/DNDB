@@ -193,7 +193,17 @@ export default function StarPage() {
       {/* Spacer */}
       <div className="flex-1" />
 
-
+      {/* 2. Star System Footer (Bottom) */}
+      {!activePlanetId && (
+        <div className="flex items-center justify-between w-full relative z-20 text-[9px] text-zinc-500 border-t border-zinc-900/60 pt-3 mt-4">
+          <span className="font-mono uppercase">
+            TRỰC KHÔNG GIAN TRI THỨC VỮNG BỀN | {!planetsLoading ? planets.length : '...'} HÀNH TINH KHẢ SÁT
+          </span>
+          <p className="text-zinc-500 font-mono hidden sm:block">
+            Mỗi hành tinh tự động lưu giữ một khối cơ sở dữ liệu riêng
+          </p>
+        </div>
+      )}
 
       {/* 3. Global Fullscreen Reading Overlay */}
       {activePlanetId && <PlanetHud planetId={activePlanetId} onClose={handleClosePlanet} />}

@@ -366,7 +366,7 @@ export const PlanetBioReader: React.FC<PlanetBioReaderProps> = ({
                       ) : (
                         <div className="flex items-center gap-3">
                           <span className="text-sm text-zinc-300 font-semibold">
-                            Hoàn thành: {quizScore + (quizSelectedOption === correctStr ? 1 : 0)}/{quizzes.length} đúng!
+                            Hoàn thành: {quizScore}/{quizzes.length} đúng!
                           </span>
                           <button
                             type="button"
