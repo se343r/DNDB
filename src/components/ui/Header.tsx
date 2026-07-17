@@ -131,36 +131,30 @@ export const Header: React.FC = () => {
 
   return (
     <header className="fixed top-0 left-0 w-full z-30 px-6 py-5 flex items-center justify-between pointer-events-none select-none">
-      {/* Top Left: Floating Logo, Menu Button and Dropdown */}
+      {/* Top Left: Logo-Menu Button and Dropdown */}
       <div className="relative flex items-center gap-3 pointer-events-none w-56">
-        {/* Logo with white stroke */}
-        <div className="pointer-events-auto flex-shrink-0 w-8 h-8 rounded-full border border-white bg-black/60 shadow-[0_0_10px_rgba(255,255,255,0.25)] flex items-center justify-center">
-          <img
-            src="/favicon.ico"
-            alt="Logo"
-            className="w-5 h-5 object-contain"
-          />
-        </div>
-
         {!activeStarId && (
           <div ref={dropdownRef} className="relative pointer-events-auto">
-          {/* Menu Toggle Button */}
+          {/* Logo Button acting as Menu Toggle */}
           <button
             onClick={() => {
               playClick();
               setMenuOpen(!menuOpen);
             }}
             onMouseEnter={playHover}
-            className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider text-slate-200 border border-white/10 hover:border-indigo-500/50 bg-black/60 hover:bg-zinc-900/80 backdrop-blur-md transition-all duration-300 shadow-[0_4px_30px_rgba(0,0,0,0.5)] cursor-pointer"
+            className="flex items-center justify-center w-12 h-12 rounded-full border-2 border-white bg-black/60 shadow-[0_0_15px_rgba(255,255,255,0.25)] hover:border-indigo-500 hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] transition-all duration-300 cursor-pointer overflow-hidden p-1.5 outline-none"
+            title="Menu"
           >
-            <Menu className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Menu</span>
-            <ChevronDown className={`w-3 h-3 text-zinc-500 transition-transform duration-300 ${menuOpen ? 'rotate-180' : ''}`} />
+            <img
+              src="/images/logo_new.png"
+              alt="Logo Menu"
+              className="w-full h-full object-contain filter brightness-0 invert"
+            />
           </button>
 
           {/* Dropdown Menu */}
           {menuOpen && (
-            <div className="absolute top-11 left-0 w-52 rounded-2xl bg-black/90 border border-white/10 backdrop-blur-lg shadow-2xl py-2 flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute top-14 left-0 w-52 rounded-2xl bg-black/90 border border-white/10 backdrop-blur-lg shadow-2xl py-2 flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200">
               {/* 1. Trang chủ */}
               <button
                 onClick={() => {
