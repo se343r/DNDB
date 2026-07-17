@@ -142,19 +142,19 @@ export const Header: React.FC = () => {
               setMenuOpen(!menuOpen);
             }}
             onMouseEnter={playHover}
-            className="flex items-center justify-center w-12 h-12 rounded-full hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer overflow-hidden p-1 outline-none"
+            className="flex items-center justify-center w-16 h-16 rounded-full hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer overflow-hidden p-1 outline-none"
             title="Menu"
           >
             <img
               src="/images/logo_new.png"
               alt="Logo Menu"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(0,229,255,0.65)] hover:drop-shadow-[0_0_18px_rgba(0,229,255,0.95)] transition-all duration-300"
             />
           </button>
 
           {/* Dropdown Menu */}
           {menuOpen && (
-            <div className="absolute top-14 left-0 w-52 rounded-2xl bg-black/90 border border-white/10 backdrop-blur-lg shadow-2xl py-2 flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute top-18 left-0 w-52 rounded-2xl bg-black/90 border border-white/10 backdrop-blur-lg shadow-2xl py-2 flex flex-col z-50 animate-in fade-in slide-in-from-top-2 duration-200">
               {/* 1. Trang chủ */}
               <button
                 onClick={() => {
