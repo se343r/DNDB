@@ -131,8 +131,17 @@ export const Header: React.FC = () => {
 
   return (
     <header className="fixed top-0 left-0 w-full z-30 px-6 py-5 flex items-center justify-between pointer-events-none select-none">
-      {/* Top Left: Floating Menu Button and Dropdown */}
-      <div className="relative flex items-center gap-3 pointer-events-none w-32">
+      {/* Top Left: Floating Logo, Menu Button and Dropdown */}
+      <div className="relative flex items-center gap-3 pointer-events-none w-56">
+        {/* Logo with white stroke */}
+        <div className="pointer-events-auto flex-shrink-0 w-8 h-8 rounded-full border border-white bg-black/60 shadow-[0_0_10px_rgba(255,255,255,0.25)] flex items-center justify-center">
+          <img
+            src="/favicon.ico"
+            alt="Logo"
+            className="w-5 h-5 object-contain"
+          />
+        </div>
+
         {!activeStarId && (
           <div ref={dropdownRef} className="relative pointer-events-auto">
           {/* Menu Toggle Button */}
